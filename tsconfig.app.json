@@ -13,7 +13,12 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+
+    /* React 18 */
     "jsx": "react-jsx",
+
+    /* Tipado global que HABILITA JSX y Vite en el proyecto */
+    "types": ["vite/client", "react", "react-dom"],
 
     /* Linting */
     "strict": true,
