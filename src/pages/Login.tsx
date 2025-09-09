@@ -2,6 +2,7 @@
 import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import LoginBackend, { type LoginPayload, type LoginSuccess, type LoginError } from "../components/LoginBackend";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,63 +11,44 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginPayload, setLoginPayload] = useState<LoginPayload | null>(null);
   const navigate = useNavigate();
+  const { adoptToken } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
-
-    // Disparar el backend hook
-    setLoginPayload({
-      email: email.trim(),
-      password: password
-    });
+    setLoginPayload({ email: email.trim(), password });
   };
 
-  const handleLoginResult = useCallback((
+  const handleLoginResult = useCallback(async (
     result: { ok: true; data: LoginSuccess } | { ok: false; error: LoginError }
   ) => {
     setIsLoading(false);
-    setLoginPayload(null); // Reset payload
+    setLoginPayload(null);
 
     if (result.ok) {
       const { data } = result;
 
-      // Guardar token y datos del usuario
-      localStorage.setItem("auth_token", data.token);
-      localStorage.setItem("user_data", JSON.stringify({
-        user: data.user,
-        usuario: data.usuario
-      }));
+      // persistir (opcional)
+      localStorage.setItem("user_data", JSON.stringify({ user: data.user, usuario: data.usuario }));
 
       setMessage("¡Bienvenido! Redirigiendo...");
+      // ✅ Espera a que el contexto adopte el token y termine de cargar el usuario
+      await adoptToken(data.token, { user: data.user, usuario: data.usuario });
 
-      // Redirigir después de un momento
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1000);
+      navigate("/dashboard", { replace: true });
     } else {
       const { error } = result;
-
-      // Manejar diferentes tipos de errores
       let errorMessage = "Error al iniciar sesión";
-
-      if (error.detail) {
-        errorMessage = error.detail;
-      } else if (error.fields) {
-        const fieldErrors = Object.entries(error.fields)
-          .map(([field, msg]) => `${field}: ${msg}`)
-          .join(", ");
+      if (error.detail) errorMessage = error.detail;
+      else if (error.fields) {
+        const fieldErrors = Object.entries(error.fields).map(([field, msg]) => `${field}: ${msg}`).join(", ");
         errorMessage = fieldErrors;
-      } else if (error.status === 401) {
-        errorMessage = "Email o contraseña incorrectos";
-      } else if (error.status === 500) {
-        errorMessage = "Error del servidor. Intenta más tarde";
-      }
-
+      } else if (error.status === 401) errorMessage = "Email o contraseña incorrectos";
+      else if (error.status === 500) errorMessage = "Error del servidor. Intenta más tarde";
       setMessage(errorMessage);
     }
-  }, [navigate]);
+  }, [navigate, adoptToken]);
 
   return (
     <>
@@ -83,11 +65,7 @@ const Login = () => {
             {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-2xl mb-4 shadow-lg">
-                <img
-                  src="/dentist.svg"
-                  alt="Dentista"
-                  className="w-10 h-10"
-                />
+                <img src="/dentist.svg" alt="Dentista" className="w-10 h-10" />
               </div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">Clínica Dental</h2>
               <p className="text-gray-600">Ingresa a tu cuenta profesional</p>
@@ -110,8 +88,18 @@ const Login = () => {
                     required
                     disabled={isLoading}
                   />
-                  <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <svg
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
                   </svg>
                 </div>
               </div>
@@ -131,8 +119,18 @@ const Login = () => {
                     required
                     disabled={isLoading}
                   />
-                  <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <svg
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
                   </svg>
                 </div>
               </div>
@@ -146,7 +144,11 @@ const Login = () => {
                   <div className="flex items-center justify-center space-x-2">
                     <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     <span>Iniciando sesión...</span>
                   </div>
@@ -158,11 +160,13 @@ const Login = () => {
 
             {/* Message */}
             {message && (
-              <div className={`mt-6 p-4 rounded-xl text-center font-medium ${
-                message.includes("Bienvenido") || message.includes("exitoso")
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}>
+              <div
+                className={`mt-6 p-4 rounded-xl text-center font-medium ${
+                  message.includes("Bienvenido") || message.includes("exitoso")
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                }`}
+              >
                 {message}
               </div>
             )}
@@ -194,9 +198,7 @@ const Login = () => {
 
           {/* Bottom Text */}
           <div className="text-center mt-6">
-            <p className="text-sm text-gray-500">
-              Sistema de Gestión Dental • Versión 2.0
-            </p>
+            <p className="text-sm text-gray-500">Sistema de Gestión Dental • Versión 2.0</p>
           </div>
         </div>
       </div>
