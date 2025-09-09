@@ -40,7 +40,7 @@ const Login = () => {
         usuario: data.usuario
       }));
 
-      setMessage("¡Bienvenido! Redirigiendo...");
+      setMessage("¡Bienvenidoo! Redirigiendo...");
 
       // Redirigir después de un momento
       setTimeout(() => {
