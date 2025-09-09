@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";  // Importar el nuevo componente Home
 import ForgotPassword from "./pages/Forgot-Password.tsx";
 import Dashboard from "./pages/Dashboard";
+import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPatientForm />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/dashboard" element={<Dashboard/>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<div className="flex justify-center">Error 404</div>} />
       </Routes>
     </BrowserRouter>
