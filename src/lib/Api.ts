@@ -6,7 +6,7 @@ import type {
   InternalAxiosRequestConfig,
 } from "axios";
 
-const DEFAULT_RENDER_BASE = "https://sitwo-project-backend.onrender.com";
+const DEFAULT_RENDER_BASE = "https://sitwo-project-backend-vzq2.onrender.com";
 
 const baseURL: string = import.meta.env.DEV
   ? "/api" // DEV: Vite proxy -> http://localhost:8000
