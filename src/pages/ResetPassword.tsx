@@ -30,7 +30,7 @@ export default function ResetPassword() {
     setMessage("");
   }, [password, password2]);
 
-  const pwdOk = useMemo(() => password.length >= 8, [password]); // regla mínima
+  const pwdOk = useMemo(() => password.length >= 8, [password]);
   const matchOk = useMemo(() => password && password2 && password === password2, [password, password2]);
   const canSubmit = !!uid && !!token && pwdOk && matchOk && !isSubmitting;
 
@@ -90,9 +90,11 @@ export default function ResetPassword() {
       <div className="relative w-full max-w-md bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-teal-300">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl mb-4 shadow-lg">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2h-3l-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
+            <img
+              src="/dentist.svg"
+              alt="Dentista"
+              className="w-10 h-10"
+            />
           </div>
           <h2 className="text-3xl font-bold text-gray-800 mb-2">Crear nueva contraseña</h2>
           <p className="text-gray-600">Ingresa tu nueva contraseña para finalizar el proceso</p>
