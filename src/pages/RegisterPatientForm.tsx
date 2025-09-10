@@ -30,6 +30,11 @@ export default function RegisterPatientForm(): JSX.Element {
         toast.dismiss();
         toast.success(result.data.message || "Cuenta creada correctamente.");
         (document.getElementById("form-register-patient") as HTMLFormElement | null)?.reset();
+        
+        // Redireccionar al login después de 2 segundos
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
       } else {
         const detail = result.error.detail || "No se pudo crear la cuenta.";
         const fieldMsg = result.error.fields
@@ -44,7 +49,7 @@ export default function RegisterPatientForm(): JSX.Element {
 
       setPayload(null);
     },
-    []
+    [navigate]
   );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
@@ -52,22 +57,93 @@ export default function RegisterPatientForm(): JSX.Element {
 
     const f = new FormData(e.currentTarget);
 
-    const p: RegisterPatientPayload = {
-      email: String(f.get("email") ?? "").trim(),
-      password: String(f.get("password") ?? ""),
-      nombre: String(f.get("nombre") ?? "").trim(),
-      apellido: String(f.get("apellido") ?? "").trim(),
-      telefono: String(f.get("telefono") ?? "").trim(),
-      sexo: String(f.get("sexo") ?? "").trim(), // "M" o "F"
-      direccion: String(f.get("direccion") ?? "").trim(),
-      fechanacimiento: String(f.get("fechanacimiento") ?? ""),
-      carnetidentidad: String(f.get("carnetidentidad") ?? "").trim(),
-    };
+    const email = String(f.get("email") ?? "").trim();
+    const password = String(f.get("password") ?? "");
+    const nombre = String(f.get("nombre") ?? "").trim();
+    const apellido = String(f.get("apellido") ?? "").trim();
+    const telefono = String(f.get("telefono") ?? "").trim();
+    const sexo = String(f.get("sexo") ?? "").trim();
+    const direccion = String(f.get("direccion") ?? "").trim();
+    const fechanacimiento = String(f.get("fechanacimiento") ?? "");
+    const carnetidentidad = String(f.get("carnetidentidad") ?? "").trim();
 
-    if (!p.email || !p.password || !p.sexo || !p.direccion || !p.fechanacimiento || !p.carnetidentidad) {
-      toast.error("Completa todos los campos obligatorios.");
+    // Validaciones específicas
+    if (!email) {
+      toast.error("El correo electrónico es requerido.");
       return;
     }
+
+    if (!email.includes('@')) {
+      toast.error("Ingresa un correo electrónico válido.");
+      return;
+    }
+
+    if (!password) {
+      toast.error("La contraseña es requerida.");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("La contraseña debe tener mínimo 8 caracteres.");
+      return;
+    }
+
+    if (!nombre) {
+      toast.error("El nombre es requerido.");
+      return;
+    }
+
+    if (!apellido) {
+      toast.error("El apellido es requerido.");
+      return;
+    }
+
+    if (!telefono) {
+      toast.error("El teléfono es requerido.");
+      return;
+    }
+
+    if (telefono.length !== 8 || !/^\d{8}$/.test(telefono)) {
+      toast.error("El teléfono debe tener exactamente 8 dígitos.");
+      return;
+    }
+
+    if (!sexo) {
+      toast.error("Selecciona el sexo.");
+      return;
+    }
+
+    if (!direccion) {
+      toast.error("La dirección es requerida.");
+      return;
+    }
+
+    if (!fechanacimiento) {
+      toast.error("La fecha de nacimiento es requerida.");
+      return;
+    }
+
+    if (!carnetidentidad) {
+      toast.error("El carnet de identidad es requerido.");
+      return;
+    }
+
+    if (carnetidentidad.length !== 8 || !/^\d{8}$/.test(carnetidentidad)) {
+      toast.error("El carnet de identidad debe tener exactamente 8 dígitos.");
+      return;
+    }
+
+    const p: RegisterPatientPayload = {
+      email,
+      password,
+      nombre,
+      apellido,
+      telefono,
+      sexo, // "M" o "F"
+      direccion,
+      fechanacimiento,
+      carnetidentidad,
+    };
 
     toast.loading("Creando cuenta…");
     setSending(true);
@@ -156,29 +232,31 @@ export default function RegisterPatientForm(): JSX.Element {
                 </div>
               </div>
 
-              {/* Nombre y Apellido (opcionales) */}
+              {/* Nombre y Apellido (ahora obligatorios) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre *</label>
                   <input
                     name="nombre"
+                    required
                     disabled={sending}
                     className="w-full px-4 py-3 bg-white/80 border-2 border-cyan-200 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 transition-all duration-200"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Apellido</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Apellido *</label>
                   <input
                     name="apellido"
+                    required
                     disabled={sending}
                     className="w-full px-4 py-3 bg-white/80 border-2 border-cyan-200 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 transition-all duration-200"
                   />
                 </div>
               </div>
 
-              {/* Teléfono (opcional) EXACTAMENTE 8 dígitos */}
+              {/* Teléfono (ahora obligatorio) EXACTAMENTE 8 dígitos */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono *</label>
                 <input
                   name="telefono"
                   type="tel"
@@ -187,6 +265,7 @@ export default function RegisterPatientForm(): JSX.Element {
                   minLength={8}
                   maxLength={8}
                   placeholder="12345678"
+                  required
                   disabled={sending}
                   className="w-full px-4 py-3 bg-white/80 border-2 border-cyan-200 rounded-xl focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 placeholder-gray-400"
                 />
