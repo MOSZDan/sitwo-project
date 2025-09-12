@@ -1,95 +1,129 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Api } from "../lib/Api";
+import React, {createContext, useContext, useEffect, useMemo, useState} from "react";
+import {Api} from "../lib/Api";
 
-type UsuarioApp = { id: number; email: string; first_name?: string; last_name?: string };
+type UsuarioApp = {
+    codigo: number;
+    nombre: string;
+    apellido: string;
+    correoelectronico: string;
+    idtipousuario: number;
+};
 
 type AuthState = {
-  token: string | null;
-  user: UsuarioApp | null;
-  isAuth: boolean;
-  loading: boolean;
-  loginFromStorage: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  logout: () => void;
-  adoptToken: (tk: string, preload?: { user?: any; usuario?: any }) => Promise<void>;
+    token: string | null;
+    user: UsuarioApp | null;
+    isAuth: boolean;
+    loading: boolean;
+    loginFromStorage: () => Promise<void>;
+    refreshUser: () => Promise<void>;
+    logout: () => void;
+    adoptToken: (tk: string, preload?: { user?: any; usuario?: any }) => Promise<void>;
 };
 
 const AuthCtx = createContext<AuthState | undefined>(undefined);
 
-export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<UsuarioApp | null>(null);
-  const [loading, setLoading] = useState(true);
+export const AuthProvider: React.FC<React.PropsWithChildren> = ({children}) => {
+    const [token, setToken] = useState<string | null>(null);
+    const [user, setUser] = useState<UsuarioApp | null>(null);
+    const [loading, setLoading] = useState(true);
 
-  const loginFromStorage = async () => {
-    const stored = localStorage.getItem("auth_token");
-    if (!stored) { setLoading(false); return; }
-    setToken(stored);
-    Api.defaults.headers.common["Authorization"] = `Token ${stored}`;
-    try {
-      const r = await Api.get<UsuarioApp>("/auth/user/");
-      setUser(r.data);
-    } catch {
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("user_data");
-      delete (Api.defaults.headers as any).Authorization;
-      setToken(null);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // src/context/AuthContext.tsx
 
-  useEffect(() => { loginFromStorage(); }, []);
+    const loginFromStorage = async () => {
+        // 1. Obtenemos tanto el token como los datos del usuario del storage.
+        const storedToken = localStorage.getItem("auth_token");
+        const storedUser = localStorage.getItem("user_data");
 
-  const refreshUser = async () => {
-    if (!token) return;
-    const r = await Api.get<UsuarioApp>("/auth/user/");
-    setUser(r.data);
-  };
+        // 2. Si falta alguno de los dos, no hay sesión válida.
+        if (!storedToken || !storedUser) {
+            setLoading(false);
+            return;
+        }
 
-  const logout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_data");
-    delete (Api.defaults.headers as any).Authorization;
-    setToken(null);
-    setUser(null);
-    setLoading(false);
-  };
+        // 3. ESTA ES LA PARTE CLAVE:
+        // Establecemos el estado de la aplicación INMEDIATAMENTE con los datos guardados.
+        // Así, la interfaz carga al instante con el perfil de paciente correcto.
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        Api.defaults.headers.common["Authorization"] = `Token ${storedToken}`;
 
-  // ✅ Bloquea mientras adopta y precarga user si viene en la respuesta de login
-  const adoptToken = async (tk: string, preload?: { user?: any; usuario?: any }) => {
-    setLoading(true);
-    localStorage.setItem("auth_token", tk);
-    setToken(tk);
-    Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
+        // 4. Ahora, en segundo plano, validamos que el token siga siendo activo en el backend.
+        try {
+            // Hacemos la llamada, no para obtener los datos (ya los tenemos), sino para verificar.
+            await Api.get<UsuarioApp>("/auth/user/");
+            // Si la llamada tiene éxito, perfecto. No necesitamos hacer nada más.
+        } catch {
+            // 5. Si la llamada falla (ej. el token expiró), entonces borramos todo.
+            // Esto mantiene la lógica de seguridad de tu función original.
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("user_data");
+            delete (Api.defaults.headers as any).Authorization;
+            setToken(null);
+            setUser(null);
+        } finally {
+            // 6. Al final de todo el proceso, terminamos la carga.
+            setLoading(false);
+        }
+    };
 
-    if (preload?.user) {
-      setUser(preload.user); // pinta inmediatamente el nombre
-    }
-    try {
-      // aún así refrescamos para asegurar consistencia
-      await refreshUser();
-    } finally {
-      setLoading(false);
-    }
-  };
+    useEffect(() => {
+        loginFromStorage();
+    }, []);
 
-  const value: AuthState = useMemo(
-    () => ({ token, user, isAuth: !!token && !!user, loading, loginFromStorage, refreshUser, logout, adoptToken }),
-    [token, user, loading]
-  );
+    const refreshUser = async () => {
+        if (!token) return;
+        const r = await Api.get<UsuarioApp>("/auth/user/");
+        setUser(r.data);
+    };
 
-  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
+    const logout = () => {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_data");
+        delete (Api.defaults.headers as any).Authorization;
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+    };
+
+    // ✅ Bloquea mientras adopta y precarga user si viene en la respuesta de login
+    const adoptToken = async (tk: string, preload?: { user?: any; usuario?: any }) => {
+        setLoading(true);
+        localStorage.setItem("auth_token", tk);
+        setToken(tk);
+        Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
+
+        if (preload?.user) {
+            setUser(preload.user);
+            setLoading(false); // pinta inmediatamente el nombre
+        } else {
+            try {
+                // aún así refrescamos para asegurar consistencia
+                await refreshUser();
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const value: AuthState = useMemo(
+        () => ({token, user, isAuth: !!token && !!user, loading, loginFromStorage, refreshUser, logout, adoptToken}),
+        [token, user, loading]
+    );
+
+    return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 };
 
 export const useAuth = (): AuthState => {
-  const ctx = useContext(AuthCtx);
-  if (ctx) return ctx;
-  return {
-    token: null, user: null, isAuth: false, loading: false,
-    loginFromStorage: async () => {}, refreshUser: async () => {},
-    logout: () => {}, adoptToken: async () => {},
-  };
+    const ctx = useContext(AuthCtx);
+    if (ctx) return ctx;
+    return {
+        token: null, user: null, isAuth: false, loading: false,
+        loginFromStorage: async () => {
+        }, refreshUser: async () => {
+        },
+        logout: () => {
+        }, adoptToken: async () => {
+        },
+    };
 };
