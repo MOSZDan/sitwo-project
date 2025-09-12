@@ -4,7 +4,7 @@ import RegisterPatientForm from "./pages/RegisterPatientForm";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import ForgotPassword from "./pages/Forgot-Password"; // ojo: quité el ".tsx"
-import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./components/AdminDashboard.tsx";
 import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
@@ -14,7 +14,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<RegisterPatientForm />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard" element={<AdminDashboard />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="*"
