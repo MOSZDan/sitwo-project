@@ -16,6 +16,8 @@ import MisCitas from './pages/MisCitas';
 import Agenda from './pages/Agenda';
 import ForgotPassword from './pages/Forgot-Password';
 import ResetPassword from './pages/ResetPassword';
+import GestionRoles from "./pages/GestionRoles";
+
 
 export const router = createBrowserRouter([
     {
@@ -78,8 +80,17 @@ export const router = createBrowserRouter([
             },
             {
                 path: "/reset-password",
-                element: <ResetPassword />,
+                element: <ResetPassword/>,
             },
+            {
+                path: "/usuarios",
+                element: (
+                    <ProtectedRoute>
+                        <GestionRoles/>
+                    </ProtectedRoute>
+                ),
+            },
+
             // --- Página 404 ---
             {
                 path: "*",
