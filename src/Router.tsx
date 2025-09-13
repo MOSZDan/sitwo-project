@@ -15,6 +15,7 @@ import ProtectedRoute from "./components/ProtectedRoute"; // El componente para 
 import MisCitas from './pages/MisCitas';
 import Agenda from './pages/Agenda';
 import ForgotPassword from './pages/Forgot-Password';
+import ResetPassword from './pages/ResetPassword';
 
 export const router = createBrowserRouter([
     {
@@ -74,6 +75,10 @@ export const router = createBrowserRouter([
                 element: (
                     <ForgotPassword/>
                 ),
+            },
+            {
+                path: "/reset-password",
+                element: <ResetPassword />,
             },
             // --- Página 404 ---
             {
