@@ -28,15 +28,23 @@ const Login = () => {
 
         if (result.ok) {
             const {data} = result;
-            //console.log("Datos recibidos del backend:", data);
-            // persistir (opcional)
+
+            // Normalizar al tipo User esperado
+            const normalizedUser = {
+                id: data.usuario.codigo,
+                email: (data.usuario as any).email ?? "no-email@fake",
+                first_name: data.usuario.nombre,
+                last_name: data.usuario.apellido,
+                telefono: data.usuario.telefono ?? null,
+                sexo: data.usuario.sexo ?? null,
+                subtipo: data.usuario.subtipo,
+                idtipousuario: data.usuario.idtipousuario,
+            };
+
             localStorage.setItem("user_data", JSON.stringify(data.usuario));
 
             setMessage("¡Bienvenido! Redirigiendo...");
-            // ✅ Espera a que el contexto adopte el token y termine de cargar el usuario
-            await adoptToken(data.token, {
-                user: data.usuario, // <-- USA EL OBJETO CORRECTO
-            });
+            await adoptToken(data.token, { user: normalizedUser });
 
             navigate("/dashboard", {replace: true});
         } else {
@@ -44,7 +52,8 @@ const Login = () => {
             let errorMessage = "Error al iniciar sesión";
             if (error.detail) errorMessage = error.detail;
             else if (error.fields) {
-                const fieldErrors = Object.entries(error.fields).map(([field, msg]) => `${field}: ${msg}`).join(", ");
+                const fieldErrors = Object.entries(error.fields)
+                    .map(([field, msg]) => `${field}: ${msg}`).join(", ");
                 errorMessage = fieldErrors;
             } else if (error.status === 401) errorMessage = "Email o contraseña incorrectos";
             else if (error.status === 500) errorMessage = "Error del servidor. Intenta más tarde";
