@@ -18,7 +18,8 @@ export default function TopBar() {
   const { isAuth, user, logout } = useAuth();
   const navigate = useNavigate();
   const { displayName, email, initial } = getDisplayData(user);
-   console.log("Estado de Auth en TopBar:", { isAuth, user});
+  console.log("Estado de Auth en TopBar:", { isAuth, user });
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -56,9 +57,16 @@ export default function TopBar() {
                 <p className="text-sm sm:text-base font-semibold text-gray-800 leading-none">{displayName}</p>
                 <p className="hidden sm:block text-xs text-gray-500">{email}</p>
               </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-100 grid place-items-center ring-2 ring-cyan-300">
+
+              <Link
+                to="/perfil"
+                title="Mi perfil"
+                aria-label="Ir a mi perfil"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-100 grid place-items-center ring-2 ring-cyan-300 hover:bg-cyan-200 transition"
+              >
                 <span className="text-cyan-700 font-bold">{initial}</span>
-              </div>
+              </Link>
+
               <button
                 onClick={handleLogout}
                 className="px-3 py-2 text-xs sm:text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
