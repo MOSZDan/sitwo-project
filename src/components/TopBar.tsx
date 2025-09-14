@@ -18,7 +18,7 @@ export default function TopBar() {
   const { isAuth, user, logout } = useAuth();
   const navigate = useNavigate();
   const { displayName, email, initial } = getDisplayData(user);
-
+   console.log("Estado de Auth en TopBar:", { isAuth, user});
   const handleLogout = () => {
     logout();
     navigate("/login");
