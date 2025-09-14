@@ -19,6 +19,22 @@ export const Api: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
+export interface User {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+}
+
+export interface Usuario {
+    codigo: number;
+    nombre: string;
+    apellido: string;
+    subtipo: string;
+    idtipousuario: number;
+    recibir_notificaciones?: boolean;
+}
+
 export function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -45,3 +61,18 @@ Api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 export async function seedCsrf(): Promise<void> {
   await Api.get("/auth/csrf/");
 }
+
+export const updateUserSettings = async (settings: { recibir_notificaciones: boolean }, token: string) => {
+  try {
+    // Usamos la instancia 'Api' que ya está configurada globalmente
+    const response = await Api.patch('/auth/user/settings/', settings, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al actualizar las preferencias:", error);
+    throw error;
+  }
+};

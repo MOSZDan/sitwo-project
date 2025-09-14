@@ -1,6 +1,7 @@
 // src/context/AuthContext.tsx
-import React, {createContext, useContext, useEffect, useMemo, useState} from "react";
-import {Api} from "../lib/Api";
+
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Api, type User, type Usuario } from "../lib/Api";
 
 type UsuarioApp = {
     codigo: number;
@@ -8,6 +9,8 @@ type UsuarioApp = {
     apellido: string;
     correoelectronico: string;
     idtipousuario: number;
+    subtipo: string;
+    recibir_notificaciones?: boolean;
 };
 
 type AuthState = {
@@ -18,51 +21,44 @@ type AuthState = {
     loginFromStorage: () => Promise<void>;
     refreshUser: () => Promise<void>;
     logout: () => void;
-    adoptToken: (tk: string, preload?: { user?: any; usuario?: any }) => Promise<void>;
+    adoptToken: (tk: string, preload?: { user?: User; usuario?: Usuario }) => Promise<void>;
+    updateNotificationSetting: (newSetting: boolean) => void;
 };
 
 const AuthCtx = createContext<AuthState | undefined>(undefined);
 
-export const AuthProvider: React.FC<React.PropsWithChildren> = ({children}) => {
+export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const [token, setToken] = useState<string | null>(null);
     const [user, setUser] = useState<UsuarioApp | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // src/context/AuthContext.tsx
+    const logout = useCallback(() => {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_data");
+        delete (Api.defaults.headers as any).Authorization;
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+    }, []);
 
     const loginFromStorage = async () => {
-        // 1. Obtenemos tanto el token como los datos del usuario del storage.
         const storedToken = localStorage.getItem("auth_token");
         const storedUser = localStorage.getItem("user_data");
 
-        // 2. Si falta alguno de los dos, no hay sesión válida.
         if (!storedToken || !storedUser) {
             setLoading(false);
             return;
         }
 
-        // 3. ESTA ES LA PARTE CLAVE:
-        // Establecemos el estado de la aplicación INMEDIATAMENTE con los datos guardados.
-        // Así, la interfaz carga al instante con el perfil de paciente correcto.
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
         Api.defaults.headers.common["Authorization"] = `Token ${storedToken}`;
 
-        // 4. Ahora, en segundo plano, validamos que el token siga siendo activo en el backend.
         try {
-            // Hacemos la llamada, no para obtener los datos (ya los tenemos), sino para verificar.
-            await Api.get<UsuarioApp>("/auth/user/");
-            // Si la llamada tiene éxito, perfecto. No necesitamos hacer nada más.
+            await Api.get("/auth/user/");
         } catch {
-            // 5. Si la llamada falla (ej. el token expiró), entonces borramos todo.
-            // Esto mantiene la lógica de seguridad de tu función original.
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("user_data");
-            delete (Api.defaults.headers as any).Authorization;
-            setToken(null);
-            setUser(null);
+            logout();
         } finally {
-            // 6. Al final de todo el proceso, terminamos la carga.
             setLoading(false);
         }
     };
@@ -73,32 +69,46 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({children}) => {
 
     const refreshUser = async () => {
         if (!token) return;
-        const r = await Api.get<UsuarioApp>("/auth/user/");
-        setUser(r.data);
+        try {
+            const { data } = await Api.get<{ user: User; usuario: Usuario }>("/auth/user/");
+            const fullUser: UsuarioApp = {
+                codigo: data.usuario.codigo,
+                nombre: data.usuario.nombre,
+                apellido: data.usuario.apellido,
+                correoelectronico: data.user.email,
+                idtipousuario: data.usuario.idtipousuario,
+                subtipo: data.usuario.subtipo,
+                recibir_notificaciones: data.usuario.recibir_notificaciones
+            };
+            setUser(fullUser);
+            localStorage.setItem("user_data", JSON.stringify(fullUser));
+        } catch (e) {
+            console.error("Failed to refresh user", e);
+            logout();
+        }
     };
 
-    const logout = () => {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_data");
-        delete (Api.defaults.headers as any).Authorization;
-        setToken(null);
-        setUser(null);
-        setLoading(false);
-    };
-
-    // ✅ Bloquea mientras adopta y precarga user si viene en la respuesta de login
-    const adoptToken = async (tk: string, preload?: { user?: any; usuario?: any }) => {
+    const adoptToken = async (tk: string, preload?: { user?: User; usuario?: Usuario }) => {
         setLoading(true);
         localStorage.setItem("auth_token", tk);
         setToken(tk);
         Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
 
-        if (preload?.user) {
-            setUser(preload.user);
-            setLoading(false); // pinta inmediatamente el nombre
+        if (preload?.user && preload.usuario) {
+            const fullUser: UsuarioApp = {
+                codigo: preload.usuario.codigo,
+                nombre: preload.usuario.nombre,
+                apellido: preload.usuario.apellido,
+                correoelectronico: preload.user.email,
+                idtipousuario: preload.usuario.idtipousuario,
+                subtipo: preload.usuario.subtipo,
+                recibir_notificaciones: preload.usuario.recibir_notificaciones
+            };
+            setUser(fullUser);
+            localStorage.setItem("user_data", JSON.stringify(fullUser));
+            setLoading(false);
         } else {
             try {
-                // aún así refrescamos para asegurar consistencia
                 await refreshUser();
             } finally {
                 setLoading(false);
@@ -106,9 +116,28 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({children}) => {
         }
     };
 
+    const updateNotificationSetting = useCallback((newSetting: boolean) => {
+        setUser(currentUser => {
+            if (!currentUser) return null;
+            const updatedUser = { ...currentUser, recibir_notificaciones: newSetting };
+            localStorage.setItem('user_data', JSON.stringify(updatedUser));
+            return updatedUser;
+        });
+    }, []);
+
     const value: AuthState = useMemo(
-        () => ({token, user, isAuth: !!token && !!user, loading, loginFromStorage, refreshUser, logout, adoptToken}),
-        [token, user, loading]
+        () => ({
+            token,
+            user,
+            isAuth: !!token && !!user,
+            loading,
+            loginFromStorage,
+            refreshUser,
+            logout,
+            adoptToken,
+            updateNotificationSetting
+        }),
+        [token, user, loading, updateNotificationSetting, logout]
     );
 
     return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
@@ -116,14 +145,19 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({children}) => {
 
 export const useAuth = (): AuthState => {
     const ctx = useContext(AuthCtx);
-    if (ctx) return ctx;
-    return {
-        token: null, user: null, isAuth: false, loading: false,
-        loginFromStorage: async () => {
-        }, refreshUser: async () => {
-        },
-        logout: () => {
-        }, adoptToken: async () => {
-        },
-    };
+    if (!ctx) {
+        // Esto previene errores si se usa fuera del provider, devolviendo un estado "vacío" funcional.
+        return {
+            token: null,
+            user: null,
+            isAuth: false,
+            loading: true, // true para que los componentes esperen
+            loginFromStorage: async () => {},
+            refreshUser: async () => {},
+            logout: () => {},
+            adoptToken: async () => {},
+            updateNotificationSetting: () => {},
+        };
+    }
+    return ctx;
 };

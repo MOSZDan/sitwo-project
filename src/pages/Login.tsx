@@ -28,15 +28,25 @@ const Login = () => {
 
         if (result.ok) {
             const {data} = result;
-            //console.log("Datos recibidos del backend:", data);
-            // persistir (opcional)
-            localStorage.setItem("user_data", JSON.stringify(data.usuario));
-
             setMessage("¡Bienvenido! Redirigiendo...");
-            // ✅ Espera a que el contexto adopte el token y termine de cargar el usuario
+
+            // --- ✅ ¡LÍNEA CORREGIDA! ---
+            // Le pasamos al contexto AMBOS objetos: 'user' y 'usuario',
+            // tal como los envía el backend y como espera la función.
             await adoptToken(data.token, {
-                user: data.usuario, // <-- USA EL OBJETO CORRECTO
+                user: data.user,
+                usuario: data.usuario,
             });
+
+            // Redirigir según el rol del usuario para más flexibilidad
+            if (data.usuario.subtipo === 'paciente') {
+                navigate("/dashboard", {replace: true});
+            } else if (data.usuario.subtipo === 'administrador') {
+                navigate("/admin-dashboard", {replace: true});
+            } else {
+                // Puedes añadir más roles aquí (odontologo, recepcionista)
+                navigate("/", {replace: true});
+            }
 
             navigate("/dashboard", {replace: true});
         } else {
