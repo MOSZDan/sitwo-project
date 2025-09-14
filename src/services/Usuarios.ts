@@ -21,14 +21,14 @@ type ArrOrPaginated<T> = T[] | { results: T[] };
 
 export async function buscarUsuarios(q: string = ""): Promise<Usuario[]> {
   const { data } = await Api.get<ArrOrPaginated<Usuario>>(
-    "/usuarios/",
+    "/api/usuarios/",
     { params: q ? { search: q } : undefined }
   );
   return Array.isArray(data) ? data : (data.results ?? []);
 }
 
 export async function listarTiposUsuario(): Promise<TipoUsuario[]> {
-  const { data } = await Api.get<ArrOrPaginated<TipoUsuario>>("/tipos-usuario/");
+  const { data } = await Api.get<ArrOrPaginated<TipoUsuario>>("/api/tipos-usuario/");
   return Array.isArray(data) ? data : (data.results ?? []);
 }
 
@@ -36,7 +36,7 @@ export async function cambiarRolPorCodigo(
   codigo: number,
   idtipousuario: number
 ): Promise<void> {
-  await Api.patch(`/usuarios/${codigo}/`, { idtipousuario });
+  await Api.patch(`/api/usuarios/${codigo}/`, { idtipousuario });
 }
 
 /* ===========================
@@ -56,12 +56,12 @@ export type Perfil = {
 
 /** GET /api/usuario/me */
 export async function verMiPerfil(): Promise<Perfil> {
-  const { data } = await Api.get<Perfil>("/usuario/me");
+  const { data } = await Api.get("/usuario/me");
   return data;
 }
 
-/** PATCH /api/usuario/me  (envía solo el/los campos a modificar) */
+/** PATCH /api/usuario/me (envía solo el/los campos a modificar) */
 export async function editarMiPerfil(partial: Partial<Perfil>): Promise<Perfil> {
-  const { data } = await Api.patch<Perfil>("/usuario/me", partial);
+  const { data } = await Api.patch<Perfil>("/api/usuario/me", partial);
   return data;
 }
