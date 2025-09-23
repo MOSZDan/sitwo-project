@@ -34,21 +34,30 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const [loading, setLoading] = useState(true);
 
     const loginFromStorage = async () => {
+        console.log("=== LOGIN FROM STORAGE ===");
         const storedToken = localStorage.getItem("auth_token");
         const storedUser = localStorage.getItem("user_data");
+
+        console.log("Token almacenado:", !!storedToken);
+        console.log("UserData almacenado:", storedUser);
 
         if (!storedToken || !storedUser) {
             setLoading(false);
             return;
         }
 
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        Api.defaults.headers.common["Authorization"] = `Token ${storedToken}`;
-
         try {
+            const userData = JSON.parse(storedUser);
+            console.log("UserData parseado:", userData);
+
+            setToken(storedToken);
+            setUser(userData); // Aquí debería ser el objeto completo
+            Api.defaults.headers.common["Authorization"] = `Token ${storedToken}`;
+
             await Api.get("/auth/user/");
-        } catch {
+            console.log("Validación de token exitosa");
+        } catch (error) {
+            console.error("Error validando token:", error);
             localStorage.removeItem("auth_token");
             localStorage.removeItem("user_data");
             delete (Api.defaults.headers as any).Authorization;
@@ -95,31 +104,42 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     };
 
     const adoptToken = async (tk: string, preload?: { user?: User; usuario?: Usuario }) => {
-        setLoading(true);
-        localStorage.setItem("auth_token", tk);
-        setToken(tk);
-        Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
+        console.log("=== ADOPT TOKEN START ===");
+        console.log("Token:", tk);
+        console.log("Preload:", preload);
 
-        if (preload?.user && preload.usuario) {
-            // Aplanamos el objeto de usuario aquí también
-            const fullUser: UsuarioApp = {
-                codigo: preload.usuario.codigo,
-                nombre: preload.usuario.nombre,
-                apellido: preload.usuario.apellido,
-                correoelectronico: preload.user.email,
-                idtipousuario: preload.usuario.idtipousuario,
-                subtipo: preload.usuario.subtipo,
-                recibir_notificaciones: preload.usuario.recibir_notificaciones
-            };
-            setUser(fullUser);
-            localStorage.setItem("user_data", JSON.stringify(fullUser));
-            setLoading(false);
-        } else {
-            try {
+        setLoading(true);
+
+        try {
+            localStorage.setItem("auth_token", tk);
+            setToken(tk);
+            Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
+
+            if (preload?.user && preload.usuario) {
+                console.log("Usando preload data");
+                const fullUser: UsuarioApp = {
+                    codigo: preload.usuario.codigo,
+                    nombre: preload.usuario.nombre,
+                    apellido: preload.usuario.apellido,
+                    correoelectronico: preload.user.email,
+                    idtipousuario: preload.usuario.idtipousuario,
+                    subtipo: preload.usuario.subtipo,
+                    recibir_notificaciones: preload.usuario.recibir_notificaciones
+                };
+
+                console.log("FullUser creado:", fullUser);
+                setUser(fullUser);
+                localStorage.setItem("user_data", JSON.stringify(fullUser));
+                console.log("Usuario guardado en localStorage");
+            } else {
+                console.log("Sin preload, refrescando user...");
                 await refreshUser();
-            } finally {
-                setLoading(false);
             }
+        } catch (error) {
+            console.error("Error en adoptToken:", error);
+        } finally {
+            setLoading(false);
+            console.log("=== ADOPT TOKEN END ===");
         }
     };
 

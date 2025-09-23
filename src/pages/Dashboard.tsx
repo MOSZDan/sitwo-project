@@ -6,19 +6,27 @@ import PacienteDashboard from "../components/PacienteDashboard";
 
 
 const Dashboard = () => {
-    const {user} = useAuth();
+    const { user, isAuth, loading } = useAuth();
 
-    console.log("Componente Dashboard renderizado. Usuario:", user);
-    // Si aún no se cargan los datos del usuario, muestra un mensaje
-    if (!user) {
+    console.log("=== DASHBOARD RENDER ===");
+    console.log("isAuth:", isAuth);
+    console.log("user:", user);
+    console.log("loading:", loading);
+
+    if (loading) {
         return <div>Cargando...</div>;
     }
-    console.log("Verificando usuario en Dashboard:", user);
+
+    if (!isAuth || !user) {
+        console.log("No autenticado o sin usuario");
+        return <div>Cargando...</div>;
+    }
+
+    console.log("Usuario autenticado:", user.idtipousuario);
 
     if (user.idtipousuario === 2) {
         return <PacienteDashboard/>;
     } else {
-        // Para cualquier otro rol (Admin, Recepcionista, etc.), muestra el panel de la clínica
         return <AdminDashboard/>;
     }
 };
