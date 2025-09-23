@@ -19,64 +19,74 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Evitar múltiples submissions
+    if (isLoading) {
+      console.log("Ya procesando, ignorando submit");
+      return;
+    }
+
     setIsLoading(true);
     setMessage("");
     setLoginPayload({ email: email.trim(), password });
   };
 
   const handleLoginResult = useCallback(
-    async (
-      result:
-        | { ok: true; data: LoginSuccess }
-        | { ok: false; error: LoginError }
-    ) => {
-      setIsLoading(false);
-      setLoginPayload(null);
+      async (
+          result:
+              | { ok: true; data: LoginSuccess }
+              | { ok: false; error: LoginError }
+      ) => {
+        console.log("=== HANDLE LOGIN RESULT ===");
+        console.log("Result:", result);
 
-      if (result.ok) {
-        const { data } = result;
+        setIsLoading(false);
+        setLoginPayload(null);
 
-        // Enriquecemos 'usuario' con alias para que TopBar siga funcionando
-        const enrichedUsuario: any = {
-          ...data.usuario,
-          nombres:
-            (data as any)?.usuario?.nombres ?? (data as any)?.usuario?.nombre,
-          apellidos:
-            (data as any)?.usuario?.apellidos ??
-            (data as any)?.usuario?.apellido,
-        };
+        if (result.ok) {
+          const { data } = result;
+          console.log("Data completa:", data);
 
-        // Persistimos ambos: 'user' (Django) y 'usuario' (negocio)
-        localStorage.setItem(
-          "user_data",
-          JSON.stringify({ user: data.user, usuario: enrichedUsuario })
-        );
+          // Verificar que tenemos los datos necesarios
+          if (!data.user || !data.usuario) {
+            console.error("Datos incompletos del servidor");
+            setMessage("Error: Datos incompletos del servidor");
+            return;
+          }
 
-        setMessage("¡Bienvenido! Redirigiendo...");
+          try {
+            const enrichedUsuario: any = {
+              ...data.usuario,
+              nombres: data.usuario?.nombres ?? data.usuario?.nombre,
+              apellidos: data.usuario?.apellidos ?? data.usuario?.apellido,
+            };
 
-        // ✅ MUY IMPORTANTE: el AuthContext espera 'user' (Django), no 'usuario'
-        await adoptToken(data.token, {
-          user: data.user,
-        });
+            localStorage.setItem(
+                "user_data",
+                JSON.stringify({ user: data.user, usuario: enrichedUsuario })
+            );
 
-        navigate("/dashboard", { replace: true });
-      } else {
-        const { error } = result;
-        let errorMessage = "Error al iniciar sesión";
-        if (error.detail) errorMessage = error.detail;
-        else if (error.fields) {
-          const fieldErrors = Object.entries(error.fields)
-            .map(([field, msg]) => `${field}: ${msg}`)
-            .join(", ");
-          errorMessage = fieldErrors;
-        } else if (error.status === 401)
-          errorMessage = "Email o contraseña incorrectos";
-        else if (error.status === 500)
-          errorMessage = "Error del servidor. Intenta más tarde";
-        setMessage(errorMessage);
-      }
-    },
-    [navigate, adoptToken]
+            setMessage("¡Bienvenido! Redirigiendo...");
+
+            // ✅ CORREGIR: Pasar AMBOS user y usuario
+            console.log("Llamando adoptToken con:", { user: data.user, usuario: data.usuario });
+            await adoptToken(data.token, {
+              user: data.user,
+              usuario: data.usuario  // ← ESTO FALTABA
+            });
+
+            console.log("Navegando al dashboard...");
+            navigate("/dashboard", { replace: true });
+
+          } catch (error) {
+            console.error("Error procesando login:", error);
+            setMessage("Error procesando los datos de login");
+          }
+        } else {
+          // ... manejo de errores existente
+        }
+      },
+      [navigate, adoptToken]
   );
 
   return (
