@@ -89,7 +89,7 @@ export default function LoginBackend({ payload, onDone }: Props): null {
           email: payload.email,
           password: payload.password,
         };
-
+        console.log("LoginBackend: Enviando login a", Api.defaults.baseURL + "/auth/login/");
         console.log("LoginBackend: Enviando request de login...");
         const { data } = await Api.post<LoginSuccess>("/auth/login/", body, { headers });
 
