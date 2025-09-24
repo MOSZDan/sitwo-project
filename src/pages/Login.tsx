@@ -57,8 +57,8 @@ const Login = () => {
           try {
             const enrichedUsuario: any = {
               ...data.usuario,
-              nombres: data.usuario?.nombres ?? data.usuario?.nombre,
-              apellidos: data.usuario?.apellidos ?? data.usuario?.apellido,
+              nombres: data.usuario?.nombre ?? data.usuario?.nombre,
+              apellidos: data.usuario?.apellido ?? data.usuario?.apellido,
             };
 
             localStorage.setItem(
