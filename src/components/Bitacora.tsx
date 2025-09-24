@@ -1,20 +1,20 @@
 // src/components/Bitacora.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { Api } from '../lib/Api';
 
 interface BitacoraEntry {
     id: number;
     accion: string;
     accion_display: string;
     descripcion: string;
-    fecha_hora: string;
-    fecha_hora_formatted: string;
+    fecha_hora: string; // ← ISO del back (con offset)
     usuario_nombre: string;
     ip_address: string;
     user_agent: string;
-    modelo_afectado?: string;
-    objeto_id?: number;
-    datos_adicionales?: never;
+    modelo_afectado?: string | null;
+    objeto_id?: number | null;
+    datos_adicionales?: Record<string, any> | null;
 }
 
 interface BitacoraStats {
@@ -24,6 +24,19 @@ interface BitacoraStats {
     actividad_diaria: { [key: string]: number };
     periodo: string;
 }
+
+// Formatea en la zona/offset del navegador a dd/mm/yyyy HH:mm:ss
+const formatLocalDateTime = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
+};
 
 const Bitacora: React.FC = () => {
     const [entries, setEntries] = useState<BitacoraEntry[]>([]);
@@ -36,7 +49,7 @@ const Bitacora: React.FC = () => {
         accion: '',
         fecha_desde: '',
         fecha_hasta: '',
-        search: ''
+        search: '',
     });
     const [showStats, setShowStats] = useState(false);
 
@@ -44,38 +57,26 @@ const Bitacora: React.FC = () => {
 
     const fetchBitacora = async (page = 1) => {
         if (!token) return;
-
         setLoading(true);
         setError('');
-
         try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                ...(filters.accion && { accion: filters.accion }),
-                ...(filters.fecha_desde && { fecha_desde: filters.fecha_desde }),
-                ...(filters.fecha_hasta && { fecha_hasta: filters.fecha_hasta }),
-                ...(filters.search && { search: filters.search })
-            });
-
-            const response = await fetch(`/api/bitacora/?${params}`, {
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
+            const { data } = await Api.get('/bitacora/', {
+                params: {
+                    page,
+                    ...(filters.accion && { accion: filters.accion }),
+                    ...(filters.fecha_desde && { fecha_desde: filters.fecha_desde }),
+                    ...(filters.fecha_hasta && { fecha_hasta: filters.fecha_hasta }),
+                    ...(filters.search && { search: filters.search }),
                 },
+                headers: { Authorization: `Token ${token}` }, // ← importante
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                setEntries(data.results);
-                setTotalPages(Math.ceil(data.count / 25)); // Asumiendo page_size=25
-                setCurrentPage(page);
-            } else if (response.status === 403) {
-                setError('No tienes permisos para ver la bitácora.');
-            } else {
-                setError('Error al cargar la bitácora.');
-            }
-        } catch (error) {
-            setError('Error de conexión.');
+            setEntries(data.results);
+            setTotalPages(Math.ceil(data.count / 25));
+            setCurrentPage(page);
+        } catch (e: any) {
+            const status = e?.response?.status;
+            if (status === 403) setError('No tienes permisos para ver la bitácora.');
+            else setError('Error al cargar la bitácora.');
         } finally {
             setLoading(false);
         }
@@ -83,31 +84,25 @@ const Bitacora: React.FC = () => {
 
     const fetchStats = async () => {
         if (!token) return;
-
         try {
-            const response = await fetch('/api/bitacora/estadisticas/', {
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
-                },
+            const { data } = await Api.get('/bitacora/estadisticas/', {
+                headers: { Authorization: `Token ${token}` }, // ← importante
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                setStats(data);
-            }
-        } catch (error) {
-            console.error('Error al cargar estadísticas:', error);
+            setStats(data);
+        } catch (e: any) {
+            // No rompemos la página si falla; solo mostramos el botón igual
+            console.error('Error al cargar estadísticas:', e);
         }
     };
 
     useEffect(() => {
         fetchBitacora();
         fetchStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
     const handleFilterChange = (key: string, value: string) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
+        setFilters((prev) => ({ ...prev, [key]: value }));
     };
 
     const applyFilters = () => {
@@ -116,25 +111,27 @@ const Bitacora: React.FC = () => {
     };
 
     const clearFilters = () => {
-        setFilters({
-            accion: '',
-            fecha_desde: '',
-            fecha_hasta: '',
-            search: ''
-        });
+        setFilters({ accion: '', fecha_desde: '', fecha_hasta: '', search: '' });
         setCurrentPage(1);
         fetchBitacora(1);
     };
 
     const getActionColor = (accion: string) => {
         switch (accion) {
-            case 'login': return 'text-green-600 bg-green-100';
-            case 'logout': return 'text-gray-600 bg-gray-100';
-            case 'registro': return 'text-blue-600 bg-blue-100';
-            case 'crear_cita': return 'text-purple-600 bg-purple-100';
-            case 'modificar_cita': return 'text-yellow-600 bg-yellow-100';
-            case 'eliminar_cita': return 'text-red-600 bg-red-100';
-            default: return 'text-gray-600 bg-gray-100';
+            case 'login':
+                return 'text-green-600 bg-green-100';
+            case 'logout':
+                return 'text-gray-600 bg-gray-100';
+            case 'registro':
+                return 'text-blue-600 bg-blue-100';
+            case 'crear_cita':
+                return 'text-purple-600 bg-purple-100';
+            case 'modificar_cita':
+                return 'text-yellow-600 bg-yellow-100';
+            case 'eliminar_cita':
+                return 'text-red-600 bg-red-100';
+            default:
+                return 'text-gray-600 bg-gray-100';
         }
     };
 
@@ -171,36 +168,42 @@ const Bitacora: React.FC = () => {
                     <div className="bg-white p-4 rounded-lg shadow border">
                         <h3 className="font-semibold text-gray-900">Acciones Principales</h3>
                         <div className="space-y-1">
-                            {Object.entries(stats.acciones).slice(0, 3).map(([accion, count]) => (
-                                <div key={accion} className="flex justify-between text-sm">
-                                    <span className="truncate">{accion}</span>
-                                    <span className="font-medium">{count}</span>
-                                </div>
-                            ))}
+                            {Object.entries(stats.acciones)
+                                .slice(0, 3)
+                                .map(([accion, count]) => (
+                                    <div key={accion} className="flex justify-between text-sm">
+                                        <span className="truncate">{accion}</span>
+                                        <span className="font-medium">{count}</span>
+                                    </div>
+                                ))}
                         </div>
                     </div>
 
                     <div className="bg-white p-4 rounded-lg shadow border">
                         <h3 className="font-semibold text-gray-900">Usuarios Activos</h3>
                         <div className="space-y-1">
-                            {Object.entries(stats.usuarios_activos).slice(0, 3).map(([usuario, count]) => (
-                                <div key={usuario} className="flex justify-between text-sm">
-                                    <span className="truncate">{usuario}</span>
-                                    <span className="font-medium">{count}</span>
-                                </div>
-                            ))}
+                            {Object.entries(stats.usuarios_activos)
+                                .slice(0, 3)
+                                .map(([usuario, count]) => (
+                                    <div key={usuario} className="flex justify-between text-sm">
+                                        <span className="truncate">{usuario}</span>
+                                        <span className="font-medium">{count}</span>
+                                    </div>
+                                ))}
                         </div>
                     </div>
 
                     <div className="bg-white p-4 rounded-lg shadow border">
                         <h3 className="font-semibold text-gray-900">Actividad Diaria</h3>
                         <div className="space-y-1">
-                            {Object.entries(stats.actividad_diaria).slice(0, 3).map(([fecha, count]) => (
-                                <div key={fecha} className="flex justify-between text-sm">
-                                    <span>{fecha}</span>
-                                    <span className="font-medium">{count}</span>
-                                </div>
-                            ))}
+                            {Object.entries(stats.actividad_diaria)
+                                .slice(0, 3)
+                                .map(([fecha, count]) => (
+                                    <div key={fecha} className="flex justify-between text-sm">
+                                        <span>{fecha}</span>
+                                        <span className="font-medium">{count}</span>
+                                    </div>
+                                ))}
                         </div>
                     </div>
                 </div>
@@ -211,9 +214,7 @@ const Bitacora: React.FC = () => {
                 <h3 className="font-semibold text-gray-900 mb-4">Filtros</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Acción
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Acción</label>
                         <select
                             value={filters.accion}
                             onChange={(e) => handleFilterChange('accion', e.target.value)}
@@ -232,9 +233,7 @@ const Bitacora: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Desde
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
                         <input
                             type="date"
                             value={filters.fecha_desde}
@@ -244,9 +243,7 @@ const Bitacora: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Hasta
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
                         <input
                             type="date"
                             value={filters.fecha_hasta}
@@ -256,9 +253,7 @@ const Bitacora: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Buscar
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                         <input
                             type="text"
                             placeholder="Usuario, descripción, IP..."
@@ -285,7 +280,7 @@ const Bitacora: React.FC = () => {
                 </div>
             </div>
 
-            {/* Tabla de registros */}
+            {/* Tabla */}
             <div className="bg-white rounded-lg shadow border overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -328,19 +323,21 @@ const Bitacora: React.FC = () => {
                             entries.map((entry) => (
                                 <tr key={entry.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {entry.fecha_hora_formatted}
+                                        {formatLocalDateTime(entry.fecha_hora)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionColor(entry.accion)}`}>
+                      <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionColor(
+                              entry.accion
+                          )}`}
+                      >
                         {entry.accion_display}
                       </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {entry.usuario_nombre}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-900">
-                                        {entry.descripcion}
-                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-900">{entry.descripcion}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {entry.ip_address}
                                     </td>
@@ -427,9 +424,7 @@ const Bitacora: React.FC = () => {
             </div>
 
             {error && (
-                <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-                    {error}
-                </div>
+                <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>
             )}
         </div>
     );
