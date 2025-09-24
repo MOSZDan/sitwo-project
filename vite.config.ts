@@ -7,7 +7,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://127.0.0.1:8000',
+                target: 'https://sitwo-project-backend-vzq2.onrender.com',
                 changeOrigin: true,
                 secure: false, // opcional, Render ya da SSL válido
             }
