@@ -95,6 +95,20 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     };
 
     const logout = () => {
+        const tk = token;
+
+        (async () => {
+            try {
+                await Api.get("/auth/csrf/").catch(() => { /* no-op */ });
+
+                await Api.post("/auth/logout/", null, {
+                    headers: tk ? { Authorization: `Token ${tk}` } : undefined,
+                });
+            } catch (e) {
+                console.warn("No se pudo cerrar sesión en el servidor (continuo limpiando estado):", e);
+            }
+        })();
+
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user_data");
         delete (Api.defaults.headers as any).Authorization;

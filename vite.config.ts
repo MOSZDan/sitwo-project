@@ -5,9 +5,11 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
     plugins: [react(), tailwindcss()],
     server: {
+        host: "127.0.0.1",
+        port: 5173,
         proxy: {
             '/api': {
-                target: 'https://sitwo-project-backend-vzq2.onrender.com',
+                target: 'http://127.0.0.1:8000',
                 changeOrigin: true,
                 secure: false, // opcional, Render ya da SSL válido
             }
