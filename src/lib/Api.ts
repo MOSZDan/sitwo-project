@@ -93,3 +93,53 @@ export const updateUserSettings = async (settings: { recibir_notificaciones: boo
     throw error;
   }
 };
+
+/**
+ * Cancela una cita específica.
+ * @param consultaId El ID de la consulta a cancelar.
+ * @param motivo Motivo de cancelación (opcional).
+ */
+export const cancelarCita = async (consultaId: number, motivo?: string): Promise<void> => {
+  try {
+    await Api.post(`/consultas/${consultaId}/cancelar/`, {
+      motivo_cancelacion: motivo || ''
+    });
+  } catch (error) {
+    console.error(`Error al cancelar la cita ${consultaId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Reprograma una cita a una nueva fecha y horario.
+ * @param consultaId El ID de la consulta a reprogramar.
+ * @param nuevaFecha La nueva fecha en formato 'YYYY-MM-DD'.
+ * @param nuevoHorarioId El ID del nuevo horario.
+ */
+export const reprogramarCita = async (consultaId: number, nuevaFecha: string, nuevoHorarioId: number) => {
+  try {
+    const response = await Api.post(`/consultas/${consultaId}/reprogramar/`, {
+      fecha: nuevaFecha,
+      idhorario: nuevoHorarioId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error al reprogramar la cita ${consultaId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene horarios disponibles para una fecha y odontólogo específicos.
+ * @param fecha La fecha en formato 'YYYY-MM-DD'.
+ * @param odontologoId El ID del odontólogo.
+ */
+export const obtenerHorariosDisponibles = async (fecha: string, odontologoId: number) => {
+  try {
+    const response = await Api.get(`/horarios-disponibles/?fecha=${fecha}&odontologo_id=${odontologoId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener horarios disponibles:', error);
+    throw error;
+  }
+};
