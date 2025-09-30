@@ -1,7 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {Api} from '../lib/Api';
 import {useAuth} from '../context/AuthContext';
-import TopBar from '../components/TopBar'; // Asumiendo que quieres el TopBar aquí también
+import {useNavigate} from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 // ... (Las interfaces Odontologo, Horario, TipoConsulta y Paciente se quedan igual) ...
 interface Odontologo {
@@ -28,6 +29,7 @@ interface Paciente {
 
 const AgendarCita = () => {
     const {user} = useAuth();
+    const navigate = useNavigate();
     const [odontologos, setOdontologos] = useState<Odontologo[]>([]);
     const [horarios, setHorarios] = useState<Horario[]>([]);
     const [tiposConsulta, setTiposConsulta] = useState<TipoConsulta[]>([]);
@@ -40,6 +42,7 @@ const AgendarCita = () => {
 
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -63,15 +66,18 @@ const AgendarCita = () => {
         e.preventDefault();
         setMessage('');
         setError('');
+        setIsSubmitting(true);
 
         if (!user) {
             setError('Debes iniciar sesión para agendar una cita.');
+            setIsSubmitting(false);
             return;
         }
 
         const pacienteActual = pacientes.find(p => p.codusuario.codigo === user.codigo);
         if (!pacienteActual) {
             setError('No se encontró el perfil de paciente para este usuario.');
+            setIsSubmitting(false);
             return;
         }
 
@@ -86,14 +92,28 @@ const AgendarCita = () => {
 
         try {
             await Api.post('/consultas/', nuevaConsulta);
-            setMessage('¡Cita agendada con éxito!');
+            setMessage('¡Cita agendada con éxito! Redirigiendo al dashboard...');
+            
+            // Limpiar el formulario
             setSelectedOdontologo('');
             setSelectedFecha('');
             setSelectedHorario('');
             setSelectedTipoConsulta('');
-        } catch (submitError) {
-            setError('Hubo un error al agendar la cita. Por favor, inténtalo de nuevo.');
+            
+            // Redirigir al dashboard después de 2 segundos
+            setTimeout(() => {
+                navigate('/dashboard');
+            }, 2000);
+            
+        } catch (submitError: any) {
+            if (submitError.response?.status === 400) {
+                setError('El horario seleccionado ya está ocupado. Por favor, elige otro horario.');
+            } else {
+                setError('Hubo un error al agendar la cita. Por favor, inténtalo de nuevo.');
+            }
             console.error('Error al agendar la cita:', submitError);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -183,15 +203,36 @@ const AgendarCita = () => {
                         </div>
 
                         {/* Botón de envío */}
-                        <button type="submit"
-                                className="w-full bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-colors duration-300">
-                            Agendar Cita
+                        <button 
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-colors duration-300 disabled:bg-cyan-300 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? 'Agendando...' : 'Agendar Cita'}
                         </button>
                     </form>
 
                     {/* Mensajes de feedback */}
-                    {message && <p className="mt-4 text-center text-sm font-medium text-green-600">{message}</p>}
-                    {error && <p className="mt-4 text-center text-sm font-medium text-red-600">{error}</p>}
+                    {message && (
+                        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center">
+                                <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                <p className="text-sm font-medium text-green-800">{message}</p>
+                            </div>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex items-center">
+                                <svg className="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                <p className="text-sm font-medium text-red-800">{error}</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
