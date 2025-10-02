@@ -26,23 +26,23 @@ export default function AdminDashboard() {
         setLoading(true);
         const [u, p, c] = await Promise.all([
           Api.get<{ count: number }>("/users/count/").catch(
-              () => ({ data: { count: 0 } } as never)
+            () => ({ data: { count: 0 } } as never)
           ),
           Api.get<{ count?: number; results?: never[] }>(
-              "/pacientes/?limit=1"
+            "/pacientes/?limit=1"
           ).catch(() => ({ data: { results: [] } } as never)),
           Api.get<{ count?: number; results?: never[] }>(
-              "/consultas/?limit=1"
+            "/consultas/?limit=1"
           ).catch(() => ({ data: { results: [] } } as never)),
         ]);
         setCounts({
           users: u?.data?.count ?? 0,
           pacientes:
-              p?.data?.count ??
-              (Array.isArray(p?.data?.results) ? p.data.results.length : 0),
+            p?.data?.count ??
+            (Array.isArray(p?.data?.results) ? p.data.results.length : 0),
           consultas:
-              c?.data?.count ??
-              (Array.isArray(c?.data?.results) ? c.data.results.length : 0),
+            c?.data?.count ??
+            (Array.isArray(c?.data?.results) ? c.data.results.length : 0),
         });
       } finally {
         setLoading(false);
@@ -56,272 +56,46 @@ export default function AdminDashboard() {
   // Si estamos en la vista de bitácora
   if (activeView === 'bitacora') {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-white">
-          <TopBar />
-
-          <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-            {/* Header con botón de regreso */}
-            <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-10">
-              <div className="flex items-center gap-3">
-                <button
-                    onClick={() => setActiveView('dashboard')}
-                    className="p-2 rounded-lg hover:bg-white/50 transition-colors"
-                    title="Volver al dashboard"
-                >
-                  <svg
-                      className="w-5 h-5 text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-                <img src="/dentist.svg" className="w-7 h-7 sm:w-8 sm:h-8" alt="" />
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  Bitácora de Auditoría
-                </h2>
-              </div>
-              <button
-                  onClick={() => setActiveView('dashboard')}
-                  className="self-start sm:self-auto text-xs sm:text-sm px-2.5 sm:px-3 py-1 rounded-full bg-cyan-100 text-cyan-700 hover:bg-cyan-200 transition-colors"
-              >
-                ← Volver al Panel
-              </button>
-            </header>
-
-            <Bitacora />
-          </main>
-
-          <footer className="bg-gray-900 text-white py-6 sm:py-10 mt-10 sm:mt-20">
-            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 text-center text-gray-400 text-xs sm:text-sm">
-              © {new Date().getFullYear()} Clínica Dental. Todos los derechos
-              reservados.
-            </div>
-          </footer>
-        </div>
-    );
-  }
-
-  // Vista principal del dashboard (tu código actual)
-  return (
       <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-white">
         <TopBar />
 
         <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-          {/* Header */}
+          {/* Header con botón de regreso */}
           <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-10">
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveView('dashboard')}
+                className="p-2 rounded-lg hover:bg-white/50 transition-colors"
+                title="Volver al dashboard"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
               <img src="/dentist.svg" className="w-7 h-7 sm:w-8 sm:h-8" alt="" />
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                Panel de la Clínica
+                Bitácora de Auditoría
               </h2>
             </div>
-            <span className="self-start sm:self-auto text-xs sm:text-sm px-2.5 sm:px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-            {loading ? "Sincronizando…" : "Conectado al backend"}
-          </span>
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="self-start sm:self-auto text-xs sm:text-sm px-2.5 sm:px-3 py-1 rounded-full bg-cyan-100 text-cyan-700 hover:bg-cyan-200 transition-colors"
+            >
+              ← Volver al Panel
+            </button>
           </header>
 
-          {/* KPIs */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { label: "Usuarios", value: counts.users ?? 0 },
-              { label: "Pacientes", value: counts.pacientes ?? 0 },
-              { label: "Consultas", value: counts.consultas ?? 0 },
-            ].map((k, i) => (
-                <div
-                    key={i}
-                    className="bg-white/80 backdrop-blur-sm border border-cyan-100 rounded-2xl p-4 sm:p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-teal-600 grid place-items-center shrink-0">
-                      <img src="/dentist.svg" className="w-5 h-5 sm:w-6 sm:h-6" alt="" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-500">{k.label}</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-                        {k.value}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-            ))}
-          </section>
-
-          {/* Acciones rápidas */}
-          <section className="mt-6 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <Link
-                to="/pacientes"
-                className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-            >
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
-                  <svg
-                      className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                    Gestionar Pacientes
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Altas, ediciones, historial
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-                to="/agenda"
-                className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-            >
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
-                  <svg
-                      className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7h8M8 11h8M8 15h6M5 7h.01M5 11h.01M5 15h.01"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                    Agenda & Consultas
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Turnos, estados, pagos
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-                to="/reportes"
-                className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-            >
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
-                  <svg
-                      className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                  >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 11V3a1 1 0 012 0v8h3l-4 4-4-4h3zM5 19h14"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                    Reportes
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    KPI clínicos y financieros
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Gestionar Roles (solo admins) */}
-            {user?.idtipousuario === 1 && (
-                <Link
-                    to="/usuarios"
-                    className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
-                      <svg
-                          className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                      >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 11V7a4 4 0 10-8 0v4M5 11h14l-1 10H6L5 11z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                        Gestionar roles
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        Lista de usuarios, búsqueda y cambio de rol
-                      </p>
-                    </div>
-                    <span className="ml-auto text-cyan-700 group-hover:translate-x-0.5 transition">
-                  →
-                </span>
-                  </div>
-                </Link>
-            )}
-
-            {/* Bitácora de Auditoría (solo admins) */}
-            {user?.idtipousuario === 1 && (
-                <button
-                    onClick={() => setActiveView('bitacora')}
-                    className="group bg-white/80 border border-purple-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition text-left w-full"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-purple-100 grid place-items-center shrink-0">
-                      <svg
-                          className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                      >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                        Bitácora de Auditoría
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        Registro de actividades y seguridad
-                      </p>
-                    </div>
-                    <span className="ml-auto text-purple-700 group-hover:translate-x-0.5 transition">
-                  →
-                </span>
-                  </div>
-                </button>
-            )}
-          </section>
+          <Bitacora />
         </main>
 
         <footer className="bg-gray-900 text-white py-6 sm:py-10 mt-10 sm:mt-20">
@@ -331,5 +105,292 @@ export default function AdminDashboard() {
           </div>
         </footer>
       </div>
+    );
+  }
+
+  // Vista principal del dashboard (tu código actual)
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-white">
+      <TopBar />
+
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-10">
+          <div className="flex items-center gap-3">
+            <img src="/dentist.svg" className="w-7 h-7 sm:w-8 sm:h-8" alt="" />
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              Panel de la Clínica
+            </h2>
+          </div>
+          <span className="self-start sm:self-auto text-xs sm:text-sm px-2.5 sm:px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+            {loading ? "Sincronizando…" : "Conectado al backend"}
+          </span>
+        </header>
+
+        {/* KPIs */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {[
+            { label: "Usuarios", value: counts.users ?? 0 },
+            { label: "Pacientes", value: counts.pacientes ?? 0 },
+            { label: "Consultas", value: counts.consultas ?? 0 },
+          ].map((k, i) => (
+            <div
+              key={i}
+              className="bg-white/80 backdrop-blur-sm border border-cyan-100 rounded-2xl p-4 sm:p-6 shadow-sm"
+            >
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-teal-600 grid place-items-center shrink-0">
+                  <img src="/dentist.svg" className="w-5 h-5 sm:w-6 sm:h-6" alt="" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-500">{k.label}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+                    {k.value}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Acciones rápidas */}
+        <section className="mt-6 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <Link
+            to="/pacientes"
+            className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                  Gestionar Pacientes
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Altas, ediciones, historial
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/agenda"
+            className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7h8M8 11h8M8 15h6M5 7h.01M5 11h.01M5 15h.01"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                  Agenda & Consultas
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Turnos, estados, pagos
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/reportes"
+            className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 11V3a1 1 0 012 0v8h3l-4 4-4-4h3zM5 19h14"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                  Reportes
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  KPI clínicos y financieros
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Registrar Historia Clínica */}
+          <Link
+            to="/historias/registrar"
+            className="group bg-white/80 border border-teal-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-teal-100 grid place-items-center shrink-0">
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-teal-700"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                  Registrar Historia Clínica
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Crear un nuevo episodio para un paciente
+                </p>
+              </div>
+              <span className="ml-auto text-teal-700 group-hover:translate-x-0.5 transition">
+                →
+              </span>
+            </div>
+          </Link>
+
+          {/*Consultar Historia Clínica */}
+          <Link
+            to="/historias/consultar"
+            className="group bg-white/80 border border-indigo-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
+          >
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 grid place-items-center shrink-0">
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-700"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                  Consultar Historia Clínica
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Buscar por paciente y ver episodios
+                </p>
+              </div>
+              <span className="ml-auto text-indigo-700 group-hover:translate-x-0.5 transition">
+                →
+              </span>
+            </div>
+          </Link>
+
+          {/* Gestionar Roles (solo admins) */}
+          {user?.idtipousuario === 1 && (
+            <Link
+              to="/usuarios"
+              className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
+            >
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
+                  <svg
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 11V7a4 4 0 10-8 0v4M5 11h14l-1 10H6L5 11z"
+                    />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                    Gestionar roles
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Lista de usuarios, búsqueda y cambio de rol
+                  </p>
+                </div>
+                <span className="ml-auto text-cyan-700 group-hover:translate-x-0.5 transition">
+                  →
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Bitácora de Auditoría (solo admins) */}
+          {user?.idtipousuario === 1 && (
+            <button
+              onClick={() => setActiveView('bitacora')}
+              className="group bg-white/80 border border-purple-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition text-left w-full"
+            >
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-purple-100 grid place-items-center shrink-0">
+                  <svg
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                    Bitácora de Auditoría
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Registro de actividades y seguridad
+                  </p>
+                </div>
+                <span className="ml-auto text-purple-700 group-hover:translate-x-0.5 transition">
+                  →
+                </span>
+              </div>
+            </button>
+          )}
+        </section>
+      </main>
+
+      <footer className="bg-gray-900 text-white py-6 sm:py-10 mt-10 sm:mt-20">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 text-center text-gray-400 text-xs sm:text-sm">
+          © {new Date().getFullYear()} Clínica Dental. Todos los derechos
+          reservados.
+        </div>
+      </footer>
+    </div>
   );
 }
