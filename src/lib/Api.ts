@@ -2,8 +2,8 @@
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosInstance, Method, InternalAxiosRequestConfig } from "axios";
 
-const DEFAULT_RENDER_BASE = //"https://sitwo-project-backend-vzq2.onrender.com";
-    "http://127.0.0.1:8000/" ;
+const DEFAULT_RENDER_BASE = "https://sitwo-project-backend-vzq2.onrender.com";
+    //"http://127.0.0.1:8000/" ;
 
 const baseURL: string = import.meta.env.DEV
     ? "http://127.0.0.1:8000/api" // DEV: Vite proxy -> http://localhost:8000
