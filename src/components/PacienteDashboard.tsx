@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { updateUserSettings } from '../lib/Api';
 import TopBar from "./TopBar.tsx";
 
-// --- Iconos SVG para un look más profesional (copiados directamente aquí para simplicidad) ---
+// --- Iconos SVG ---
 const BellIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -22,6 +22,14 @@ const CalendarIcon = () => (
 const ClipboardListIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+  </svg>
+);
+
+// Nuevo icono para Historia Clínica
+const MedicalFileIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6l3 3v12a3 3 0 01-3 3H9a3 3 0 01-3-3V6l3-3z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v6M9 14h6" />
   </svg>
 );
 
@@ -79,9 +87,16 @@ const PacienteDashboard = () => {
                   <CalendarIcon />
                   <span className="text-lg font-semibold">Agendar Cita</span>
                 </Link>
+
                 <Link to="/mis-citas" className="group flex items-center justify-center p-6 bg-white text-slate-700 rounded-lg shadow-md hover:shadow-lg hover:bg-green-500 hover:text-white transition-all duration-300">
                   <ClipboardListIcon />
                   <span className="text-lg font-semibold">Ver Mis Citas</span>
+                </Link>
+
+                {/* ➕ NUEVO: Ver Mi Historia Clínica */}
+                <Link to="/mis-historias" className="group flex items-center justify-center p-6 bg-white text-slate-700 rounded-lg shadow-md hover:shadow-lg hover:bg-indigo-500 hover:text-white transition-all duration-300">
+                  <MedicalFileIcon />
+                  <span className="text-lg font-semibold">Mi Historia Clínica</span>
                 </Link>
               </div>
             </div>

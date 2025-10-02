@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Api, cancelarCita, reprogramarCita } from '../lib/Api';
+import { Api, cancelarCita} from '../lib/Api';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
