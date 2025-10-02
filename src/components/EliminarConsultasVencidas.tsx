@@ -1,4 +1,4 @@
-import { useState } from 'react';
+{/*import { useState } from 'react';
 import { eliminarConsultasVencidas } from '../lib/Api';
 
 interface EliminarConsultasVencidasProps {
@@ -70,4 +70,4 @@ export const EliminarConsultasVencidas = ({ onConsultasEliminadas }: EliminarCon
             </button>
         </div>
     );
-};
+};*/}
