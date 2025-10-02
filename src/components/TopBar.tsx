@@ -29,7 +29,7 @@ export default function TopBar() {
     <nav className="bg-white shadow-lg sticky top-0 z-40">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3 sm:py-4">
-          <Link to="/" className="flex items-center gap-2 sm:gap-3">
+          <Link to="/dashboard" className="flex items-center gap-2 sm:gap-3">
             <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-2xl grid place-items-center shadow">
               <img src="/dentist.svg" alt="Clínica Dental" className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
