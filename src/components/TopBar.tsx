@@ -18,6 +18,7 @@ export default function TopBar() {
   const { isAuth, user, logout } = useAuth();
   const navigate = useNavigate();
   const { displayName, email, initial } = getDisplayData(user);
+  console.log("Estado de Auth en TopBar:", { isAuth, user });
 
   const handleLogout = () => {
     logout();
@@ -28,7 +29,7 @@ export default function TopBar() {
     <nav className="bg-white shadow-lg sticky top-0 z-40">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3 sm:py-4">
-          <Link to="/" className="flex items-center gap-2 sm:gap-3">
+          <Link to="/dashboard" className="flex items-center gap-2 sm:gap-3">
             <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-2xl grid place-items-center shadow">
               <img src="/dentist.svg" alt="Clínica Dental" className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
@@ -56,9 +57,16 @@ export default function TopBar() {
                 <p className="text-sm sm:text-base font-semibold text-gray-800 leading-none">{displayName}</p>
                 <p className="hidden sm:block text-xs text-gray-500">{email}</p>
               </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-100 grid place-items-center ring-2 ring-cyan-300">
+
+              <Link
+                to="/perfil"
+                title="Mi perfil"
+                aria-label="Ir a mi perfil"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-100 grid place-items-center ring-2 ring-cyan-300 hover:bg-cyan-200 transition"
+              >
                 <span className="text-cyan-700 font-bold">{initial}</span>
-              </div>
+              </Link>
+
               <button
                 onClick={handleLogout}
                 className="px-3 py-2 text-xs sm:text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition"

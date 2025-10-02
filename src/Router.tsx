@@ -1,64 +1,49 @@
 // src/router.tsx
-
 import {createBrowserRouter} from "react-router-dom";
+import {Root} from "./Root";
 import Home from "./pages/Home";
-// 1. Importa todos los componentes que necesitarás
-import {Root} from "./Root"; // El layout que acabamos de crear
 import RegisterPatientForm from "./pages/RegisterPatientForm";
-import Login from "./pages/Login"; // Asumo que tienes una página de Login
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import AgendarCita from './pages/AgendarCita';
-import ProtectedRoute from "./components/ProtectedRoute"; // El componente para proteger rutas
-//import Pacientes from "./pages/Pacientes";
-//import Consultas from "./pages/AgendarCita";
-//import Reportes from "./pages/Reportes";
-import MisCitas from './pages/MisCitas';
-import Agenda from './pages/Agenda';
-import ForgotPassword from './pages/Forgot-Password';
-import ResetPassword from './pages/ResetPassword';
+import AgendarCita from "./pages/AgendarCita";
+import ProtectedRoute from "./components/ProtectedRoute";
+import MisCitas from "./pages/MisCitas";
+import Agenda from "./pages/Agenda";
+import ForgotPassword from "./pages/Forgot-Password";
+import ResetPassword from "./pages/ResetPassword";
+import GestionRoles from "./pages/GestionRoles";
+import Perfil from "./pages/Perfil";
+import RegistrarHistoriaClinica from "./pages/RegistrarHistoriaClinica";
+import ConsultarHistoriaClinica from "./pages/ConsultarHistoriaClinica";
+import ConsultarHistoriaClinicaPaciente from "./pages/ConsultarHistoriaClinicaPaciente";
 
 export const router = createBrowserRouter([
     {
-        // 2. La ruta raíz ahora renderiza nuestro componente Root
         path: "/",
         element: <Root/>,
-        // 3. Todas las demás rutas se convierten en "hijas" de Root
         children: [
+            {index: true, element: <Home/>},
+
+            // Públicas
+            {path: "/login", element: <Login/>},
+            {path: "/register", element: <RegisterPatientForm/>},
+            {path: "/forgot-password", element: <ForgotPassword/>},
+            {path: "/reset-password", element: <ResetPassword/>},
+
+            // Protegidas (requieren sesión)
             {
-                index: true,
-                // 👇 2. CAMBIA ESTA LÍNEA
-                element: <Home/>, // Antes era un <div>, ahora es tu componente
+                path: "/dashboard",
+                element: (
+                    <ProtectedRoute>
+                        <Dashboard/>
+                    </ProtectedRoute>
+                ),
             },
             {
                 path: "/agenda",
                 element: (
                     <ProtectedRoute>
                         <Agenda/>
-                    </ProtectedRoute>
-                ),
-            },
-            {
-                path: "/mis-citas",
-                element: (
-                    <ProtectedRoute>
-                        <MisCitas/>
-                    </ProtectedRoute>
-                ),
-            },
-            {
-                path: "/login",
-                element: <Login/>,
-            },
-            {
-                path: "/register",
-                element: <RegisterPatientForm/>,
-            },
-            // --- Rutas Protegidas ---
-            {
-                path: "/dashboard",
-                element: (
-                    <ProtectedRoute>
-                        <Dashboard/>
                     </ProtectedRoute>
                 ),
             },
@@ -71,22 +56,63 @@ export const router = createBrowserRouter([
                 ),
             },
             {
-                path: "/forgot-password",
+                path: "/mis-citas",
                 element: (
-                    <ForgotPassword/>
+                    <ProtectedRoute>
+                        <MisCitas/>
+                    </ProtectedRoute>
                 ),
             },
             {
-                path: "/reset-password",
-                element: <ResetPassword />,
+                path: "/perfil",
+                element: (
+                    <ProtectedRoute>
+                        <Perfil/>
+                    </ProtectedRoute>
+                ),
             },
-            // --- Página 404 ---
+
+            // Administración (protegida; backend valida si es admin)
+            {
+                path: "/usuarios",
+                element: (
+                    <ProtectedRoute>
+                        <GestionRoles/>
+                    </ProtectedRoute>
+                ),
+            },
+
+            //Registrar Historia Clínica (protegida)
+            {
+                path: "/historias/registrar",
+                element: (
+                    <ProtectedRoute>
+                        <RegistrarHistoriaClinica/>
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: "/historias/consultar",
+                element: (
+                    <ProtectedRoute>
+                        <ConsultarHistoriaClinica/>
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: "/mis-historias",
+                element: (
+                    <ProtectedRoute>
+                        <ConsultarHistoriaClinicaPaciente/>
+                    </ProtectedRoute>
+                ),
+            },
+
+            // 404
             {
                 path: "*",
                 element: <div className="min-h-screen grid place-items-center">404</div>,
             },
-
-
         ],
     },
 ]);

@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+// src/components/LoginBackend.tsx
+import { useEffect, useRef } from "react";
 import { Api, getCookie } from "../lib/Api";
 import axios, { AxiosError } from "axios";
 
@@ -39,20 +40,46 @@ type Props = {
   /** Cuando pase de null a objeto, se dispara el login */
   payload: LoginPayload | null;
   onDone: (
-    result:
-      | { ok: true; data: LoginSuccess }
-      | { ok: false; error: LoginError }
+      result:
+          | { ok: true; data: LoginSuccess }
+          | { ok: false; error: LoginError }
   ) => void;
 };
 
 /** Componente "backend" (sin UI): hace login real a /auth/login/ */
 export default function LoginBackend({ payload, onDone }: Props): null {
+  const isProcessingRef = useRef(false);
+  const lastPayloadRef = useRef<LoginPayload | null>(null);
+
   useEffect(() => {
-    if (!payload) return;
+    // Guard 1: No hay payload
+    if (!payload) {
+      console.log("LoginBackend: No payload");
+      return;
+    }
+
+    // Guard 2: Ya está procesando
+    if (isProcessingRef.current) {
+      console.log("LoginBackend: Ya procesando, ignorando...");
+      return;
+    }
+
+    // Guard 3: Mismo payload que antes (evitar duplicados)
+    if (lastPayloadRef.current &&
+        lastPayloadRef.current.email === payload.email &&
+        lastPayloadRef.current.password === payload.password) {
+      console.log("LoginBackend: Mismo payload, ignorando duplicado");
+      return;
+    }
+
+    console.log("LoginBackend: Procesando login para", payload.email);
+    isProcessingRef.current = true;
+    lastPayloadRef.current = payload;
 
     (async () => {
       try {
         // 1) siembra CSRF (opcional para login, pero por consistencia)
+        console.log("LoginBackend: Obteniendo CSRF token...");
         await Api.get("/auth/csrf/");
         const csrf = getCookie("csrftoken");
         const headers = csrf ? { "X-CSRFToken": csrf } : undefined;
@@ -62,10 +89,15 @@ export default function LoginBackend({ payload, onDone }: Props): null {
           email: payload.email,
           password: payload.password,
         };
-
+        console.log("LoginBackend: Enviando login a", Api.defaults.baseURL + "/auth/login/");
+        console.log("LoginBackend: Enviando request de login...");
         const { data } = await Api.post<LoginSuccess>("/auth/login/", body, { headers });
+
+        console.log("LoginBackend: Login exitoso");
         onDone({ ok: true, data });
+
       } catch (err: unknown) {
+        console.log("LoginBackend: Error en login", err);
         const error: LoginError = {};
         if (axios.isAxiosError(err)) {
           const ax = err as AxiosError<Record<string, unknown>>;
@@ -89,6 +121,12 @@ export default function LoginBackend({ payload, onDone }: Props): null {
           error.detail = "Error desconocido";
         }
         onDone({ ok: false, error });
+      } finally {
+        // Liberar el flag después de un pequeño delay para evitar race conditions
+        setTimeout(() => {
+          isProcessingRef.current = false;
+          console.log("LoginBackend: Proceso completado");
+        }, 100);
       }
     })();
   }, [payload, onDone]);

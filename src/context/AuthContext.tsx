@@ -1,6 +1,7 @@
 // src/context/AuthContext.tsx
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+
 import { Api, type User, type Usuario } from "../lib/Api";
 
 type UsuarioApp = {
@@ -45,10 +46,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         const storedToken = localStorage.getItem("auth_token");
         const storedUser = localStorage.getItem("user_data");
 
+
         if (!storedToken || !storedUser) {
             setLoading(false);
             return;
         }
+
 
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
@@ -58,6 +61,24 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             await Api.get("/auth/user/");
         } catch {
             logout();
+
+        try {
+            const userData = JSON.parse(storedUser);
+            console.log("UserData parseado:", userData);
+
+            setToken(storedToken);
+            setUser(userData); // Aquí debería ser el objeto completo
+            Api.defaults.headers.common["Authorization"] = `Token ${storedToken}`;
+
+            await Api.get("/auth/user/");
+            console.log("Validación de token exitosa");
+        } catch (error) {
+            console.error("Error validando token:", error);
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("user_data");
+            delete (Api.defaults.headers as any).Authorization;
+            setToken(null);
+            setUser(null);
         } finally {
             setLoading(false);
         }
@@ -70,6 +91,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const refreshUser = async () => {
         if (!token) return;
         try {
+
             const { data } = await Api.get<{ user: User; usuario: Usuario }>("/auth/user/");
             const fullUser: UsuarioApp = {
                 codigo: data.usuario.codigo,
@@ -109,10 +131,68 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             setLoading(false);
         } else {
             try {
-                await refreshUser();
-            } finally {
-                setLoading(false);
+    };
+
+    const logout = () => {
+        const tk = token;
+
+        (async () => {
+            try {
+                await Api.get("/auth/csrf/").catch(() => { /* no-op */ });
+
+                await Api.post("/auth/logout/", null, {
+                    headers: tk ? { Authorization: `Token ${tk}` } : undefined,
+                });
+            } catch (e) {
+                console.warn("No se pudo cerrar sesión en el servidor (continuo limpiando estado):", e);
             }
+        })();
+
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_data");
+        delete (Api.defaults.headers as any).Authorization;
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+    };
+
+    const adoptToken = async (tk: string, preload?: { user?: User; usuario?: Usuario }) => {
+        console.log("=== ADOPT TOKEN START ===");
+        console.log("Token:", tk);
+        console.log("Preload:", preload);
+
+        setLoading(true);
+
+        try {
+            localStorage.setItem("auth_token", tk);
+            setToken(tk);
+            Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
+
+            if (preload?.user && preload.usuario) {
+                console.log("Usando preload data");
+                const fullUser: UsuarioApp = {
+                    codigo: preload.usuario.codigo,
+                    nombre: preload.usuario.nombre,
+                    apellido: preload.usuario.apellido,
+                    correoelectronico: preload.user.email,
+                    idtipousuario: preload.usuario.idtipousuario,
+                    subtipo: preload.usuario.subtipo,
+                    recibir_notificaciones: preload.usuario.recibir_notificaciones
+                };
+
+                console.log("FullUser creado:", fullUser);
+                setUser(fullUser);
+                localStorage.setItem("user_data", JSON.stringify(fullUser));
+                console.log("Usuario guardado en localStorage");
+            } else {
+                console.log("Sin preload, refrescando user...");
+                await refreshUser();
+            }
+        } catch (error) {
+            console.error("Error en adoptToken:", error);
+        } finally {
+            setLoading(false);
+            console.log("=== ADOPT TOKEN END ===");
         }
     };
 
@@ -135,9 +215,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             refreshUser,
             logout,
             adoptToken,
-            updateNotificationSetting
+
+          updateNotificationSetting
         }),
         [token, user, loading, updateNotificationSetting, logout]
+
     );
 
     return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
@@ -160,4 +242,20 @@ export const useAuth = (): AuthState => {
         };
     }
     return ctx;
+};
+    if (ctx) return ctx;
+
+    // --- FIX 5: Añadimos la función al objeto de retorno por defecto ---
+    // Esto evita errores si el contexto no se encuentra
+    return {
+        token: null,
+        user: null,
+        isAuth: false,
+        loading: false,
+        loginFromStorage: async () => {},
+        refreshUser: async () => {},
+        logout: () => {},
+        adoptToken: async () => {},
+        updateNotificationSetting: () => {}, // Función vacía por defecto
+    };
 };
