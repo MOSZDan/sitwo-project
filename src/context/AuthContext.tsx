@@ -1,7 +1,7 @@
 // src/context/AuthContext.tsx
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-
+// --- FIX 1: Importar los tipos 'User' y 'Usuario' que necesitamos ---
 import { Api, type User, type Usuario } from "../lib/Api";
 
 type UsuarioApp = {
@@ -33,34 +33,18 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const [user, setUser] = useState<UsuarioApp | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const logout = useCallback(() => {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_data");
-        delete (Api.defaults.headers as any).Authorization;
-        setToken(null);
-        setUser(null);
-        setLoading(false);
-    }, []);
-
     const loginFromStorage = async () => {
+        console.log("=== LOGIN FROM STORAGE ===");
         const storedToken = localStorage.getItem("auth_token");
         const storedUser = localStorage.getItem("user_data");
 
+        console.log("Token almacenado:", !!storedToken);
+        console.log("UserData almacenado:", storedUser);
 
         if (!storedToken || !storedUser) {
             setLoading(false);
             return;
         }
-
-
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        Api.defaults.headers.common["Authorization"] = `Token ${storedToken}`;
-
-        try {
-            await Api.get("/auth/user/");
-        } catch {
-            logout();
 
         try {
             const userData = JSON.parse(storedUser);
@@ -91,7 +75,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const refreshUser = async () => {
         if (!token) return;
         try {
-
+            // --- FIX 2: La respuesta de /auth/user/ es anidada, la aplanamos aquí ---
             const { data } = await Api.get<{ user: User; usuario: Usuario }>("/auth/user/");
             const fullUser: UsuarioApp = {
                 codigo: data.usuario.codigo,
@@ -108,29 +92,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             console.error("Failed to refresh user", e);
             logout();
         }
-    };
-
-    const adoptToken = async (tk: string, preload?: { user?: User; usuario?: Usuario }) => {
-        setLoading(true);
-        localStorage.setItem("auth_token", tk);
-        setToken(tk);
-        Api.defaults.headers.common["Authorization"] = `Token ${tk}`;
-
-        if (preload?.user && preload.usuario) {
-            const fullUser: UsuarioApp = {
-                codigo: preload.usuario.codigo,
-                nombre: preload.usuario.nombre,
-                apellido: preload.usuario.apellido,
-                correoelectronico: preload.user.email,
-                idtipousuario: preload.usuario.idtipousuario,
-                subtipo: preload.usuario.subtipo,
-                recibir_notificaciones: preload.usuario.recibir_notificaciones
-            };
-            setUser(fullUser);
-            localStorage.setItem("user_data", JSON.stringify(fullUser));
-            setLoading(false);
-        } else {
-            try {
     };
 
     const logout = () => {
@@ -196,6 +157,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         }
     };
 
+    // --- FIX 3: Definimos la función ANTES de usarla en `useMemo` ---
+    // La envolvemos en `useCallback` por optimización
     const updateNotificationSetting = useCallback((newSetting: boolean) => {
         setUser(currentUser => {
             if (!currentUser) return null;
@@ -215,11 +178,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             refreshUser,
             logout,
             adoptToken,
-
-          updateNotificationSetting
+            // --- FIX 4: Añadimos la función al objeto del contexto ---
+            updateNotificationSetting
         }),
-        [token, user, loading, updateNotificationSetting, logout]
-
+        [token, user, loading, updateNotificationSetting]
     );
 
     return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
@@ -227,22 +189,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
 export const useAuth = (): AuthState => {
     const ctx = useContext(AuthCtx);
-    if (!ctx) {
-        // Esto previene errores si se usa fuera del provider, devolviendo un estado "vacío" funcional.
-        return {
-            token: null,
-            user: null,
-            isAuth: false,
-            loading: true, // true para que los componentes esperen
-            loginFromStorage: async () => {},
-            refreshUser: async () => {},
-            logout: () => {},
-            adoptToken: async () => {},
-            updateNotificationSetting: () => {},
-        };
-    }
-    return ctx;
-};
     if (ctx) return ctx;
 
     // --- FIX 5: Añadimos la función al objeto de retorno por defecto ---
