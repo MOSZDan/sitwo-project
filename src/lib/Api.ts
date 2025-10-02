@@ -16,23 +16,22 @@ export const Api: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
-// --- Tipos exportados para reutilizar en otros archivos ---
 export interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
 }
 
 export interface Usuario {
-  codigo: number;
-  nombre: string;
-  apellido: string;
-  subtipo: string;
-  idtipousuario: number;
-  recibir_notificaciones?: boolean;
+    codigo: number;
+    nombre: string;
+    apellido: string;
+    subtipo: string;
+    idtipousuario: number;
+    recibir_notificaciones?: boolean;
 }
-// --- Fin tipos ---
+
 
 export function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`;
@@ -81,17 +80,21 @@ export async function seedCsrf(): Promise<void> {
   await Api.get("/auth/csrf/");
 }
 
-// 🆗 Usa la instancia global 'Api' (no crea otra)
 export const updateUserSettings = async (settings: { recibir_notificaciones: boolean }, token: string) => {
   try {
-    const response = await Api.patch("/auth/user/settings/", settings, {
-      headers: { Authorization: `Token ${token}` },
+    // Usamos la instancia 'Api' que ya está configurada globalmente
+    const response = await Api.patch('/auth/user/settings/', settings, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+
     });
     return response.data;
   } catch (error) {
     console.error("Error al actualizar las preferencias:", error);
     throw error;
   }
+
 };
 
 /**
