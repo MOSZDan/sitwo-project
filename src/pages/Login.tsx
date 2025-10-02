@@ -44,28 +44,6 @@ const Login = () => {
         setLoginPayload(null);
 
         if (result.ok) {
-            const {data} = result;
-            setMessage("¡Bienvenido! Redirigiendo...");
-
-            // --- ✅ ¡LÍNEA CORREGIDA! ---
-            // Le pasamos al contexto AMBOS objetos: 'user' y 'usuario',
-            // tal como los envía el backend y como espera la función.
-            await adoptToken(data.token, {
-                user: data.user,
-                usuario: data.usuario,
-            });
-
-            // Redirigir según el rol del usuario para más flexibilidad
-            if (data.usuario.subtipo === 'paciente') {
-                navigate("/dashboard", {replace: true});
-            } else if (data.usuario.subtipo === 'administrador') {
-                navigate("/admin-dashboard", {replace: true});
-            } else {
-                // Puedes añadir más roles aquí (odontologo, recepcionista)
-                navigate("/", {replace: true});
-            }
-
-            navigate("/dashboard", {replace: true});
           const { data } = result;
           console.log("Data completa:", data);
 
@@ -104,7 +82,6 @@ const Login = () => {
             console.error("Error procesando login:", error);
             setMessage("Error procesando los datos de login");
           }
-
         } else {
           // ... manejo de errores existente
         }
