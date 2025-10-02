@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Api, reprogramarCita, obtenerHorariosDisponibles } from '../lib/Api';
+import { reprogramarCita, obtenerHorariosDisponibles } from '../lib/Api';
 
 // --- Interfaces para los datos que vamos a manejar ---
 interface Consulta {
