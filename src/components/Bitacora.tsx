@@ -26,16 +26,30 @@ interface BitacoraStats {
 }
 
 // Formatea en la zona/offset del navegador a dd/mm/yyyy HH:mm:ss
-const formatLocalDateTime = (iso: string) => {
+/*const formatLocal = (iso: string) =>
+    new Intl.DateTimeFormat('es-BO', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+    }).format(new Date(iso));
+*/
+type TzMode = 'local' | 'la_paz';
+
+const formatDate = (iso: string, tz: TzMode = 'local') => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    return `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
+
+    const base: Intl.DateTimeFormatOptions = {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false,
+    };
+
+    const fmt = new Intl.DateTimeFormat(
+        'es-BO',
+        tz === 'la_paz' ? { ...base, timeZone: 'America/La_Paz' } : base
+    );
+
+    return fmt.format(d);
 };
 
 const Bitacora: React.FC = () => {
@@ -323,7 +337,7 @@ const Bitacora: React.FC = () => {
                             entries.map((entry) => (
                                 <tr key={entry.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {formatLocalDateTime(entry.fecha_hora)}
+                                        {formatDate(entry.fecha_hora)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
