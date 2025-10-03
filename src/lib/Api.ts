@@ -121,7 +121,7 @@ export const cancelarCita = async (consultaId: number, motivo?: string): Promise
  */
 export const reprogramarCita = async (consultaId: number, nuevaFecha: string, nuevoHorarioId: number) => {
   try {
-    const response = await Api.post(`/consultas/${consultaId}/reprogramar/`, {
+    const response = await Api.patch(`/consultas/${consultaId}/reprogramar/`, {
       fecha: nuevaFecha,
       idhorario: nuevoHorarioId,
     });
@@ -139,7 +139,7 @@ export const reprogramarCita = async (consultaId: number, nuevaFecha: string, nu
  */
 export const obtenerHorariosDisponibles = async (fecha: string, odontologoId: number) => {
   try {
-    const response = await Api.get(`/horarios-disponibles/?fecha=${fecha}&odontologo_id=${odontologoId}`);
+    const response = await Api.get(`/horarios/disponibles/?fecha=${fecha}&odontologo_id=${odontologoId}`);
     return response.data;
   } catch (error) {
     console.error('Error al obtener horarios disponibles:', error);
