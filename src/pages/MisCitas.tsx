@@ -11,12 +11,15 @@ interface Consulta {
   id: number;
   fecha: string;
   cododontologo: {
+    codigo: number;
     codusuario: {
+      codigo: number;
       nombre: string;
       apellido: string;
     };
   };
   idhorario: {
+    id: number;
     hora: string;
   };
   idtipoconsulta: {
@@ -88,21 +91,30 @@ const MisCitas = () => {
 
   // Función para cancelar una cita
   const handleCancelarCita = async (citaId: number) => {
-    const motivo = prompt('¿Por qué deseas cancelar esta cita? (opcional)');
-    if (motivo !== null) { // El usuario no canceló el prompt
+    const confirmacion = window.confirm('¿Estás seguro de que deseas cancelar esta cita?\n\nEsta acción no se puede deshacer.');
+
+    if (confirmacion) {
       try {
-        await cancelarCita(citaId, motivo || '');
+        await cancelarCita(citaId);
         // Eliminar la cita de la lista local
         setCitas(citas.filter(cita => cita.id !== citaId));
-        alert('Cita cancelada exitosamente.');
+        setNotification({
+          type: 'success',
+          message: 'Cita cancelada exitosamente.'
+        });
+        setTimeout(() => setNotification(null), 5000);
       } catch (err: any) {
-        if (err.response?.status === 400) {
-          alert('Esta cita ya ha sido cancelada o no se puede cancelar.');
-        } else if (err.response?.status === 403) {
-          alert('No tienes permisos para cancelar esta cita.');
-        } else {
-          alert('Error al cancelar la cita. Por favor, inténtalo de nuevo.');
-        }
+        const errorMsg = err.response?.status === 400
+          ? 'Esta cita ya ha sido cancelada o no se puede cancelar.'
+          : err.response?.status === 403
+          ? 'No tienes permisos para cancelar esta cita.'
+          : 'Error al cancelar la cita. Por favor, inténtalo de nuevo.';
+
+        setNotification({
+          type: 'warning',
+          message: errorMsg
+        });
+        setTimeout(() => setNotification(null), 5000);
         console.error(err);
       }
     }
@@ -299,12 +311,14 @@ const MisCitas = () => {
           }}
           cita={citaParaReprogramar as any}
           onCitaReprogramada={(citaActualizada: any) => {
-            // Actualizar la cita en la lista local
-            setCitas(prev => prev.map(c => c.id === citaActualizada.id ? {
-              ...c,
-              fecha: citaActualizada.fecha,
-              idhorario: citaActualizada.idhorario
-            } : c));
+            // Actualizar la cita en la lista local con todos los datos que vienen del backend
+            setCitas(prev => prev.map(c => c.id === citaActualizada.id ? citaActualizada : c));
+            // Mostrar notificación de éxito
+            setNotification({
+              type: 'success',
+              message: 'Cita reprogramada exitosamente.'
+            });
+            setTimeout(() => setNotification(null), 5000);
           }}
         />
       )}

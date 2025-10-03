@@ -56,8 +56,8 @@ export const ReprogramarCitaModal = ({ isOpen, onClose, cita, onCitaReprogramada
             setLoadingHorarios(true);
             setError('');
             try {
-                // Usar el nuevo endpoint optimizado para obtener horarios disponibles
-                const odontologoId = (cita.cododontologo as any)?.codigo ?? (cita.cododontologo as any)?.codusuario?.codigo;
+                // Usar el código del odontólogo directamente
+                const odontologoId = cita.cododontologo.codigo;
                 const horarios = await obtenerHorariosDisponibles(nuevaFecha, odontologoId);
                 setHorariosDisponibles(horarios);
 
@@ -95,12 +95,14 @@ export const ReprogramarCitaModal = ({ isOpen, onClose, cita, onCitaReprogramada
         setError('');
 
         try {
-            await reprogramarCita(cita.id, nuevaFecha, nuevoHorarioId);
+            const citaActualizada = await reprogramarCita(cita.id, nuevaFecha, nuevoHorarioId);
             alert('¡Cita reprogramada con éxito!');
-            onCitaReprogramada({ ...cita, fecha: nuevaFecha, idhorario: {id: nuevoHorarioId, hora: horariosDisponibles.find(h => h.id === nuevoHorarioId)?.hora || ''} });
+            // Pasar la cita completa actualizada que viene del backend
+            onCitaReprogramada(citaActualizada);
             onClose(); // Cierra el modal
-        } catch (err) {
-            setError('El horario seleccionado ya no está disponible. Por favor, elige otro.');
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'El horario seleccionado ya no está disponible. Por favor, elige otro.';
+            setError(errorMsg);
             console.error(err);
         } finally {
             setIsSubmitting(false);
