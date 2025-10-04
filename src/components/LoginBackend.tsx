@@ -34,6 +34,8 @@ export type LoginError = {
   status?: number;
   detail?: string;
   fields?: Record<string, string>;
+  serverError?: boolean;
+  networkError?: boolean;
 };
 
 type Props = {
@@ -78,48 +80,92 @@ export default function LoginBackend({ payload, onDone }: Props): null {
 
     (async () => {
       try {
-        // 1) siembra CSRF (opcional para login, pero por consistencia)
+        // 1) Siembra CSRF (opcional para login, pero por consistencia)
         console.log("LoginBackend: Obteniendo CSRF token...");
-        await Api.get("/auth/csrf/");
+        try {
+          await Api.get("/auth/csrf/");
+          console.log("LoginBackend: CSRF token obtenido exitosamente");
+        } catch (csrfError) {
+          console.warn("LoginBackend: Error obteniendo CSRF, continuando sin él:", csrfError);
+        }
+
         const csrf = getCookie("csrftoken");
         const headers = csrf ? { "X-CSRFToken": csrf } : undefined;
 
-        // 2) body para login
+        // 2) Body para login
         const body = {
           email: payload.email,
           password: payload.password,
         };
-        console.log("LoginBackend: Enviando login a", Api.defaults.baseURL + "/auth/login/");
-        console.log("LoginBackend: Enviando request de login...");
+
+        const loginUrl = Api.defaults.baseURL + "/auth/login/";
+        console.log("LoginBackend: Enviando login a", loginUrl);
+        console.log("LoginBackend: Payload:", { email: payload.email, password: "[OCULTA]" });
+        console.log("LoginBackend: Headers:", headers);
+
         const { data } = await Api.post<LoginSuccess>("/auth/login/", body, { headers });
 
-        console.log("LoginBackend: Login exitoso");
+        console.log("LoginBackend: Login exitoso", data);
         onDone({ ok: true, data });
 
       } catch (err: unknown) {
-        console.log("LoginBackend: Error en login", err);
+        console.error("LoginBackend: Error en login", err);
         const error: LoginError = {};
+
         if (axios.isAxiosError(err)) {
-          const ax = err as AxiosError<Record<string, unknown>>;
+          const ax = err as AxiosError<any>;
           error.status = ax.response?.status;
 
-          const d = ax.response?.data;
-          if (d) {
-            error.detail = typeof d["detail"] === "string" ? (d["detail"] as string) : undefined;
-            const fields: Record<string, string> = {};
-            Object.keys(d).forEach((k) => {
-              if (k === "detail") return;
-              const v = d[k];
-              if (Array.isArray(v)) fields[k] = (v as unknown[]).join(" ");
-              else if (typeof v === "string") fields[k] = v;
-            });
-            if (Object.keys(fields).length) error.fields = fields;
+          console.log("LoginBackend: Detalles del error:");
+          console.log("- Status:", ax.response?.status);
+          console.log("- Status Text:", ax.response?.statusText);
+          console.log("- Response Headers:", ax.response?.headers);
+          console.log("- Response Data:", ax.response?.data);
+          console.log("- Request URL:", ax.config?.url);
+          console.log("- Request Method:", ax.config?.method);
+
+          // Manejar errores específicos del servidor
+          if (ax.response?.status === 500) {
+            error.serverError = true;
+            error.detail = "Error interno del servidor. Por favor, contacta al administrador del sistema.";
+            console.error("LoginBackend: Error 500 - Problema en el servidor backend");
+          } else if (ax.response?.status === 503) {
+            error.serverError = true;
+            error.detail = "Servicio temporalmente no disponible. Intenta nuevamente en unos minutos.";
+          } else if (ax.response?.status === 502 || ax.response?.status === 504) {
+            error.serverError = true;
+            error.detail = "Error de conectividad con el servidor. Verifica tu conexión a internet.";
+          } else if (!ax.response) {
+            // Error de red
+            error.networkError = true;
+            error.detail = "No se pudo conectar al servidor. Verifica tu conexión a internet.";
           } else {
-            error.detail = ax.message;
+            // Intentar extraer información del error
+            const d = ax.response?.data;
+            if (d && typeof d === 'object') {
+              // Respuesta JSON válida
+              error.detail = typeof d["detail"] === "string" ? (d["detail"] as string) : undefined;
+              const fields: Record<string, string> = {};
+              Object.keys(d).forEach((k) => {
+                if (k === "detail") return;
+                const v = d[k];
+                if (Array.isArray(v)) fields[k] = (v as unknown[]).join(" ");
+                else if (typeof v === "string") fields[k] = v;
+              });
+              if (Object.keys(fields).length) error.fields = fields;
+            } else if (typeof d === 'string' && d.includes('<!doctype html>')) {
+              // Página HTML de error
+              error.serverError = true;
+              error.detail = `Error del servidor (${ax.response.status}). El backend devolvió una página de error en lugar de datos JSON.`;
+            } else {
+              error.detail = ax.message || "Error de comunicación con el servidor";
+            }
           }
         } else {
-          error.detail = "Error desconocido";
+          error.detail = "Error desconocido en la conexión";
+          console.error("LoginBackend: Error no-axios:", err);
         }
+
         onDone({ ok: false, error });
       } finally {
         // Liberar el flag después de un pequeño delay para evitar race conditions

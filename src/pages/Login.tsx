@@ -83,7 +83,51 @@ const Login = () => {
             setMessage("Error procesando los datos de login");
           }
         } else {
-          // ... manejo de errores existente
+          const { error } = result;
+          console.error("Error en login:", error);
+
+          // Mejorar los mensajes de error según el tipo
+          let errorMessage = "Error en el inicio de sesión";
+
+          if (error.serverError) {
+            if (error.status === 500) {
+              errorMessage = "🔧 El servidor está experimentando problemas técnicos. Por favor, intenta más tarde o contacta al soporte técnico.";
+            } else if (error.status === 503) {
+              errorMessage = "⏳ El servicio está temporalmente no disponible. Intenta nuevamente en unos minutos.";
+            } else if (error.status === 502 || error.status === 504) {
+              errorMessage = "🌐 Problema de conectividad con el servidor. Verifica tu conexión a internet.";
+            } else {
+              errorMessage = `⚠️ Error del servidor (${error.status || 'desconocido'}). ${error.detail || 'Contacta al administrador.'}`;
+            }
+          } else if (error.networkError) {
+            errorMessage = "🔌 No se pudo conectar al servidor. Verifica tu conexión a internet y intenta nuevamente.";
+          } else if (error.status === 400) {
+            if (error.fields) {
+              const fieldErrors = Object.values(error.fields).join(", ");
+              errorMessage = `❌ Datos incorrectos: ${fieldErrors}`;
+            } else {
+              errorMessage = "❌ Credenciales incorrectas. Verifica tu email y contraseña.";
+            }
+          } else if (error.status === 401) {
+            errorMessage = "🔐 Email o contraseña incorrectos. Por favor, verifica tus credenciales.";
+          } else if (error.status === 403) {
+            errorMessage = "🚫 Tu cuenta no tiene permisos para acceder al sistema.";
+          } else if (error.status === 429) {
+            errorMessage = "⏰ Demasiados intentos de inicio de sesión. Espera unos minutos antes de intentar nuevamente.";
+          } else {
+            errorMessage = error.detail || "Error desconocido en el inicio de sesión. Intenta nuevamente.";
+          }
+
+          setMessage(errorMessage);
+
+          // Log adicional para debug
+          console.log("Tipo de error:", {
+            serverError: error.serverError,
+            networkError: error.networkError,
+            status: error.status,
+            detail: error.detail,
+            fields: error.fields
+          });
         }
       },
       [navigate, adoptToken]
