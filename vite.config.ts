@@ -8,12 +8,11 @@ export default defineConfig(({ mode }) => ({
         ? {
             proxy: {
                 "/api": {
-                    target: "http://127.0.0.1:8000", // backend local (Django)
+                    target: "https://notificct.dpdns.org", // Cambiar a HTTPS
                     changeOrigin: true,
-                    secure: false,
+                    secure: true, // Habilitar SSL para HTTPS
                 },
             },
         }
         : undefined,
-
 }));

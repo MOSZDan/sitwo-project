@@ -2,13 +2,18 @@
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosInstance, Method, InternalAxiosRequestConfig } from "axios";
 
-const DEFAULT_RENDER_BASE = "http://18.220.214.178";
+const DEFAULT_RENDER_BASE = "https://notificct.dpdns.org";
 
 const baseURL: string = import.meta.env.DEV
-    ? "http://127.0.0.1:8000/api" // DEV: Vite proxy -> http://localhost:8000
+    ? "/api" // DEV: Usa proxy de Vite
     : `${(
         (import.meta.env.VITE_API_BASE as string | undefined) ?? DEFAULT_RENDER_BASE
     ).replace(/\/$/, "")}/api`;
+
+console.log("🔧 API Configuration:");
+console.log("- Environment:", import.meta.env.DEV ? "development" : "production");
+console.log("- VITE_API_BASE:", import.meta.env.VITE_API_BASE);
+console.log("- baseURL final:", baseURL);
 
 export const Api: AxiosInstance = axios.create({
   baseURL,

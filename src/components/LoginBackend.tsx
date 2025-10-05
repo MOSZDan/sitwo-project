@@ -105,6 +105,17 @@ export default function LoginBackend({ payload, onDone }: Props): null {
 
         const { data } = await Api.post<LoginSuccess>("/auth/login/", body, { headers });
 
+        console.log("=== RESPUESTA COMPLETA DEL SERVIDOR ===");
+        console.log("Data completa:", data);
+        console.log("Tipo de data:", typeof data);
+        console.log("Claves en data:", Object.keys(data || {}));
+        console.log("data.token:", data?.token);
+        console.log("data.ok:", data?.ok);
+        console.log("data.message:", data?.message);
+        console.log("data.user:", data?.user);
+        console.log("data.usuario:", data?.usuario);
+        console.log("=== FIN RESPUESTA ===");
+
         console.log("✅ LoginBackend: Login exitoso. Token recibido:", data.token);
 
         // Validar que la respuesta tenga la estructura esperada
