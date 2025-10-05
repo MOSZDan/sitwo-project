@@ -48,9 +48,9 @@ const Login = () => {
           console.log("Data completa:", data);
 
           // Verificar que tenemos los datos necesarios
-          if (!data.user || !data.usuario) {
-            console.error("Datos incompletos del servidor");
-            setMessage("Error: Datos incompletos del servidor");
+          if (!data || !data.user || !data.usuario || !data.token) {
+            console.error("⚠️ Respuesta de login incompleta:", data);
+            setMessage("Error: Datos incompletos del servidor (ver consola)");
             return;
           }
 

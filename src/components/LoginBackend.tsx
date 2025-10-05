@@ -105,8 +105,7 @@ export default function LoginBackend({ payload, onDone }: Props): null {
 
         const { data } = await Api.post<LoginSuccess>("/auth/login/", body, { headers });
 
-        console.log("LoginBackend: Login exitoso", data);
-        onDone({ ok: true, data });
+        console.log("✅ LoginBackend: Login exitoso. Token recibido:", data.token);
 
       } catch (err: unknown) {
         console.error("LoginBackend: Error en login", err);
