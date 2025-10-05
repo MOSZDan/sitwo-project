@@ -107,6 +107,13 @@ export default function LoginBackend({ payload, onDone }: Props): null {
 
         console.log("✅ LoginBackend: Login exitoso. Token recibido:", data.token);
 
+        // Validar que la respuesta tenga la estructura esperada
+        if (!data.token || !data.user || !data.usuario) {
+          console.error("❌ LoginBackend: Respuesta incompleta del servidor");
+          throw new Error("Respuesta incompleta del servidor");
+        }
+
+        onDone({ ok: true, data });
       } catch (err: unknown) {
         console.error("LoginBackend: Error en login", err);
         const error: LoginError = {};
