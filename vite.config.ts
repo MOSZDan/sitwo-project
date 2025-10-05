@@ -2,19 +2,18 @@ import {defineConfig} from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [react(), tailwindcss()],
-    server: {
-        host: "127.0.0.1",
-        port: 5173,
-        proxy: {
-            '/api': {
-                target: 'http://127.0.0.1:8000',
-                changeOrigin: true,
-                secure: false, // opcional, Render ya da SSL válido
-            }
+    server: mode === "development"
+        ? {
+            proxy: {
+                "/api": {
+                    target: "http://127.0.0.1:8000", // backend local (Django)
+                    changeOrigin: true,
+                    secure: false,
+                },
+            },
         }
+        : undefined,
 
-    },
-
-});
+}));
