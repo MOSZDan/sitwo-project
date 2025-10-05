@@ -2,13 +2,11 @@
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosInstance, Method, InternalAxiosRequestConfig } from "axios";
 
-const DEFAULT_RENDER_BASE = "https://notificct.dpdns.org";
-
 const baseURL: string = import.meta.env.DEV
     ? "/api" // DEV: Usa proxy de Vite
-    : `${(
-        (import.meta.env.VITE_API_BASE as string | undefined) ?? DEFAULT_RENDER_BASE
-    ).replace(/\/$/, "")}/api`;
+    : `https://${(
+        (import.meta.env.VITE_API_BASE as string | undefined) ?? "notificct.dpdns.org"
+    ).replace(/^https?:\/\//, "").replace(/\/$/, "")}/api`;
 
 console.log("🔧 API Configuration:");
 console.log("- Environment:", import.meta.env.DEV ? "development" : "production");
@@ -79,6 +77,27 @@ Api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   }
   return config;
 });
+
+// Interceptor de respuesta para debugging
+Api.interceptors.response.use(
+  (response) => {
+    console.log("✅ Response interceptor - Success:");
+    console.log("- URL:", response.config.url);
+    console.log("- Status:", response.status);
+    console.log("- Headers:", response.headers);
+    console.log("- Data type:", typeof response.data);
+    console.log("- Data preview:", response.data);
+    return response;
+  },
+  (error) => {
+    console.error("❌ Response interceptor - Error:");
+    console.error("- URL:", error.config?.url);
+    console.error("- Status:", error.response?.status);
+    console.error("- Response data:", error.response?.data);
+    console.error("- Error message:", error.message);
+    return Promise.reject(error);
+  }
+);
 
 export async function seedCsrf(): Promise<void> {
   await Api.get("/auth/csrf/");
