@@ -2,6 +2,29 @@
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosInstance, Method, InternalAxiosRequestConfig } from "axios";
 
+// Detectar subdominio para multi-tenancy
+function detectTenant(): string | null {
+  const hostname = window.location.hostname;
+
+  // Desarrollo local: norte.localhost, sur.localhost, etc.
+  if (hostname.includes('localhost')) {
+    const parts = hostname.split('.');
+    if (parts.length > 1 && parts[0] !== 'localhost' && parts[0] !== '127') {
+      return parts[0]; // 'norte', 'sur', 'este', etc.
+    }
+  }
+
+  // Producción: norte.tudominio.com
+  const parts = hostname.split('.');
+  if (parts.length >= 3 && parts[0] !== 'www') {
+    return parts[0]; // primer subdominio
+  }
+
+  return null;
+}
+
+const currentTenant = detectTenant();
+
 const baseURL: string = import.meta.env.DEV
     ? "/api" // DEV: Usa proxy de Vite
     : `https://${(
@@ -12,6 +35,7 @@ console.log("🔧 API Configuration:");
 console.log("- Environment:", import.meta.env.DEV ? "development" : "production");
 console.log("- VITE_API_BASE:", import.meta.env.VITE_API_BASE);
 console.log("- baseURL final:", baseURL);
+console.log("- 🏢 Tenant detectado:", currentTenant || "ninguno (sin subdominio)");
 
 export const Api: AxiosInstance = axios.create({
   baseURL,
@@ -65,16 +89,24 @@ Api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.url = url;
   }
 
-  // --- CSRF para métodos que lo requieren ---
+  // --- Headers para multi-tenancy y CSRF ---
+  const hdrs = AxiosHeaders.from(config.headers);
+
+  // Enviar subdominio detectado como header para multi-tenancy
+  if (currentTenant) {
+    hdrs.set("X-Tenant-Subdomain", currentTenant);
+  }
+
+  // CSRF para métodos que lo requieren
   const method = (config.method ?? "get").toLowerCase() as Method;
   if (method === "post" || method === "put" || method === "patch" || method === "delete") {
     const csrf = getCookie("csrftoken");
     if (csrf) {
-      const hdrs = AxiosHeaders.from(config.headers);
       hdrs.set("X-CSRFToken", csrf);
-      config.headers = hdrs;
     }
   }
+
+  config.headers = hdrs;
   return config;
 });
 
