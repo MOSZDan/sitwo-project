@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import { ReprogramarCitaModal } from '../components/ReprogramarCitaModal';
+import { FormularioFirma } from '../components/FormularioFirma';
+import { listarConsentimientosDePaciente } from '../services/consentimientoService';
 
 
 // Definimos la estructura de cómo se ve una Cita que viene de la API
@@ -40,29 +42,53 @@ const MisCitas = () => {
   // Estados para el modal de reprogramación
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [citaParaReprogramar, setCitaParaReprogramar] = useState<Consulta | null>(null);
+  
+  // Estados para el modal de firma de consentimiento
+  const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+  const [citaParaFirmar, setCitaParaFirmar] = useState<Consulta | null>(null);
+  const [consentimientosFirmados, setConsentimientosFirmados] = useState<number[]>([]);
 
   useEffect(() => {
-    const fetchCitas = async () => {
+    const fetchData = async () => {
       if (!user) {
         setError('Debes iniciar sesión para ver tus citas.');
         setLoading(false);
         return;
       }
       try {
+        // Cargar citas
         const response = await Api.get(`/consultas/?codpaciente=${user.codigo}`);
         // Ordenamos las citas por fecha para mostrar las más recientes primero
         const citasOrdenadas = (response.data.results || []).sort((a: Consulta, b: Consulta) => 
           new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
         );
         setCitas(citasOrdenadas);
+        
+        // Cargar consentimientos firmados para mostrar el estado correcto
+        try {
+          const consentimientos = await listarConsentimientosDePaciente(user.codigo);
+          // Verificamos que consentimientos sea un array antes de usar map
+          if (Array.isArray(consentimientos)) {
+            const idsConsentimientos = consentimientos
+              .map(c => c.consulta)
+              .filter(id => id !== null && id !== undefined) as number[];
+            setConsentimientosFirmados(idsConsentimientos);
+          } else {
+            console.warn("La respuesta de consentimientos no es un array:", consentimientos);
+            setConsentimientosFirmados([]);
+          }
+        } catch (errConsentimientos) {
+          console.error("Error al cargar consentimientos:", errConsentimientos);
+          setConsentimientosFirmados([]);
+        }
       } catch (err) {
-        setError('Error al cargar las citas.');
+        setError('Error al cargar las citas o consentimientos.');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchCitas();
+    fetchData();
   }, [user]);
 
   // Función para refrescar las citas (útil después de reprogramar)
@@ -86,6 +112,18 @@ const MisCitas = () => {
       }
     } catch (err) {
       console.error('Error al refrescar citas:', err);
+    }
+  };
+
+  // Función para refrescar los consentimientos firmados
+  const refreshConsentimientos = async () => {
+    if (!user) return;
+    try {
+      const consentimientos = await listarConsentimientosDePaciente(user.codigo);
+      const idsConsentimientos = consentimientos.map(c => c.consulta).filter(id => id !== null) as number[];
+      setConsentimientosFirmados(idsConsentimientos);
+    } catch (err) {
+      console.error('Error al refrescar consentimientos:', err);
     }
   };
 
@@ -125,6 +163,13 @@ const MisCitas = () => {
     const citaSeleccionada = citas.find(c => c.id === citaId) || null;
     setCitaParaReprogramar(citaSeleccionada);
     setIsModalOpen(true);
+  };
+
+  // Función para firmar un consentimiento
+  const handleFirmarConsentimiento = (citaId: number) => {
+    const citaSeleccionada = citas.find(c => c.id === citaId) || null;
+    setCitaParaFirmar(citaSeleccionada);
+    setIsFirmaModalOpen(true);
   };
 
   const getStatusBadgeClass = (estado: string) => {
@@ -272,24 +317,46 @@ const MisCitas = () => {
                        </td>
                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                          {isModificable ? (
-                           <div className="flex justify-center space-x-3">
-                             <button
-                               onClick={() => handleReprogramarCita(cita.id)}
-                               className="text-cyan-600 hover:text-cyan-900 font-medium"
-                               title="Reprogramar cita"
-                             >
-                               Reprogramar
-                             </button>
-                             <button
-                               onClick={() => handleCancelarCita(cita.id)}
-                               className="text-red-600 hover:text-red-900 font-medium"
-                               title="Cancelar cita"
-                             >
-                               Cancelar
-                             </button>
+                           <div className="flex flex-col items-center space-y-2">
+                             <div className="flex space-x-3">
+                               <button
+                                 onClick={() => handleReprogramarCita(cita.id)}
+                                 className="text-cyan-600 hover:text-cyan-900 font-medium"
+                                 title="Reprogramar cita"
+                               >
+                                 Reprogramar
+                               </button>
+                               <button
+                                 onClick={() => handleCancelarCita(cita.id)}
+                                 className="text-red-600 hover:text-red-900 font-medium"
+                                 title="Cancelar cita"
+                               >
+                                 Cancelar
+                               </button>
+                             </div>
+                             {/* Botón para firmar consentimiento si la cita no ha sido firmada aún */}
+                             {!consentimientosFirmados.includes(cita.id) && new Date(cita.fecha) >= new Date() && (
+                               <button
+                                 onClick={() => handleFirmarConsentimiento(cita.id)}
+                                 className="mt-2 text-green-600 hover:text-green-900 font-medium text-sm"
+                                 title="Firmar consentimiento"
+                               >
+                                 Firmar Consentimiento
+                               </button>
+                             )}
+                             {/* Mostrar indicador si ya está firmado */}
+                             {consentimientosFirmados.includes(cita.id) && (
+                               <span className="text-green-600 text-sm font-medium">✓ Consentimiento firmado</span>
+                             )}
                            </div>
                          ) : (
-                           <span className="text-gray-400">—</span>
+                           <div className="flex flex-col items-center">
+                             <span className="text-gray-400">—</span>
+                             {/* Mostrar indicador si ya está firmado para citas no modificables */}
+                             {consentimientosFirmados.includes(cita.id) && (
+                               <span className="text-green-600 text-sm font-medium mt-1">✓ Consentimiento firmado</span>
+                             )}
+                           </div>
                          )}
                        </td>
                      </tr>
@@ -321,6 +388,50 @@ const MisCitas = () => {
             setTimeout(() => setNotification(null), 5000);
           }}
         />
+      )}
+      
+      {/* Modal de firma de consentimiento */}
+      {isFirmaModalOpen && citaParaFirmar && user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Firmar Consentimiento Informado</h3>
+                <button 
+                  onClick={() => {
+                    setIsFirmaModalOpen(false);
+                    setCitaParaFirmar(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <FormularioFirma
+                pacienteId={user.codigo}
+                consultaId={citaParaFirmar.id}
+                titulo={`Consentimiento para ${citaParaFirmar.idtipoconsulta.nombreconsulta}`}
+                texto={`Documento de consentimiento informado para la cita del ${citaParaFirmar.fecha} a las ${citaParaFirmar.idhorario.hora} con el Dr./Dra. ${citaParaFirmar.cododontologo.codusuario.nombre} ${citaParaFirmar.cododontologo.codusuario.apellido}.`}
+                onFirmado={(consentimientoId) => {
+                  setIsFirmaModalOpen(false);
+                  setCitaParaFirmar(null);
+                  refreshConsentimientos(); // Actualizar la lista de consentimientos firmados
+                  setNotification({
+                    type: 'success',
+                    message: '¡Consentimiento firmado exitosamente!'
+                  });
+                  setTimeout(() => setNotification(null), 5000);
+                }}
+                onCancelar={() => {
+                  setIsFirmaModalOpen(false);
+                  setCitaParaFirmar(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

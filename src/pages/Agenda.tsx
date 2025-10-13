@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react';
 import {Api} from '../lib/Api';
 import TopBar from '../components/TopBar';
+import { descargarPDFConsentimiento } from '../services/consentimientoService';
 
 // ... (la interfaz Consulta se queda igual)
 interface Consulta {
@@ -11,6 +12,8 @@ interface Consulta {
     idhorario: { hora: string };
     idtipoconsulta: { nombreconsulta: string };
     idestadoconsulta: { id: number, estado: string };
+    // Agregamos la propiedad para el consentimiento
+    consentimientos?: { id: number }[];
 }
 
 
@@ -21,10 +24,27 @@ const Agenda = () => {
     useEffect(() => {
         const fetchCitas = async () => {
             try {
+                // Cargar las citas con información de consentimiento
                 const response = await Api.get('/consultas/');
                 const citasRecibidas = response.data.results || [];
-                setCitas(response.data.results || []);
-                console.log("Datos de las citas cargadas:", citasRecibidas);
+                
+                // Agregar información de consentimientos a cada cita
+                const citasConConsentimientos = await Promise.all(
+                    citasRecibidas.map(async (cita: any) => {
+                        // Cargar los consentimientos para cada cita
+                        try {
+                            const consentimientosResponse = await Api.get(`/consentimientos/?consulta=${cita.id}`);
+                            const consentimientos = consentimientosResponse.data.results || [];
+                            return { ...cita, consentimientos };
+                        } catch (err) {
+                            console.error(`Error al cargar consentimientos para la cita ${cita.id}:`, err);
+                            return { ...cita, consentimientos: [] };
+                        }
+                    })
+                );
+                
+                setCitas(citasConConsentimientos);
+                console.log("Datos de las citas cargadas con consentimientos:", citasConConsentimientos);
             } catch (err) {
                 console.error("Error al cargar las citas:", err);
             } finally {
@@ -53,6 +73,23 @@ const Agenda = () => {
         } catch (error) {
             console.error("Error al confirmar la cita:", error);
             alert("No se pudo confirmar la cita.");
+        }
+    };
+
+    const handleDescargarPDF = async (consentimientoId: number) => {
+        try {
+            const pdfBlob = await descargarPDFConsentimiento(consentimientoId);
+            const url = window.URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `consentimiento_${consentimientoId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Error al descargar el PDF:", error);
+            alert("No se pudo descargar el PDF del consentimiento.");
         }
     };
 
@@ -86,10 +123,10 @@ const Agenda = () => {
                         <tr>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Fecha y
-                                Hora
-                            </th>
+                                Hora</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Odontólogo</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Consentimiento</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                         </tr>
                         </thead>
@@ -105,6 +142,24 @@ const Agenda = () => {
                         className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(cita.idestadoconsulta.estado)}`}>
                       {cita.idestadoconsulta.estado}
                     </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    {cita.consentimientos && cita.consentimientos.length > 0 ? (
+                                        <div className="flex items-center">
+                                            <span className="text-green-600 mr-2">✓ Firmado</span>
+                                            <button
+                                                onClick={() => handleDescargarPDF(cita.consentimientos![0].id)}
+                                                className="text-blue-600 hover:text-blue-800 text-sm"
+                                                title="Descargar PDF"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-400">No firmado</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     {cita.idestadoconsulta.id == 1 && (
