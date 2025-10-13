@@ -8,9 +8,9 @@ export default defineConfig(({ mode }) => ({
         ? {
             proxy: {
                 "/api": {
-                    target: "https://notificct.dpdns.org", // Cambiar a HTTPS
+                    target: "http://localhost:8000", // Servidor Django local
                     changeOrigin: true,
-                    secure: true, // Habilitar SSL para HTTPS
+                    secure: false, // No necesitamos SSL para desarrollo local
                 },
             },
         }
