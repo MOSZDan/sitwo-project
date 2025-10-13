@@ -17,7 +17,7 @@ import RegistrarHistoriaClinica from "./pages/RegistrarHistoriaClinica";
 import UsuariosySeguridad from "./components/UsuariosySeguridad";
 import ConsultarHistoriaClinica from "./pages/ConsultarHistoriaClinica";
 import ConsultarHistoriaClinicaPaciente from "./pages/ConsultarHistoriaClinicaPaciente";
-
+import PolticasNoShow from "./pages/CrearPoliticaNoShow"
 export const router = createBrowserRouter([
     {
         path: "/",
@@ -82,6 +82,16 @@ export const router = createBrowserRouter([
                     </ProtectedRoute>
                 ),
             },
+
+             {
+                path: "/politicanoshow",
+                element: (
+                    <ProtectedRoute>
+                        <PolticasNoShow/>
+                    </ProtectedRoute>
+                ),
+            },
+
 
             //Registrar Historia Clínica (protegida)
             {
