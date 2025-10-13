@@ -14,6 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import GestionRoles from "./pages/GestionRoles";
 import Perfil from "./pages/Perfil";
 import RegistrarHistoriaClinica from "./pages/RegistrarHistoriaClinica";
+import UsuariosySeguridad from "./components/UsuariosySeguridad";
 import ConsultarHistoriaClinica from "./pages/ConsultarHistoriaClinica";
 import ConsultarHistoriaClinicaPaciente from "./pages/ConsultarHistoriaClinicaPaciente";
 
@@ -98,6 +99,15 @@ export const router = createBrowserRouter([
                         <ConsultarHistoriaClinica/>
                     </ProtectedRoute>
                 ),
+            },
+            {
+                path: "/usuarios-seguridad",
+                element: (
+                    <ProtectedRoute>
+                        {/* Si usas AdminRoute, envuelve: <AdminRoute> ... </AdminRoute> */}
+                        <UsuariosySeguridad/>
+                    </ProtectedRoute>
+                )
             },
             {
                 path: "/mis-historias",

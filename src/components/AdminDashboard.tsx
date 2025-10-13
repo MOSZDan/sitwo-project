@@ -292,7 +292,7 @@ export default function AdminDashboard() {
     );
   }
 
-  // Vista principal del dashboard (tu código actual)
+  // Vista principal del dashboard
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-white">
       <TopBar />
@@ -340,8 +340,10 @@ export default function AdminDashboard() {
 
         {/* Acciones rápidas */}
         <section className="mt-6 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+          {/* <— CAMBIO AQUÍ: apunta al panel Usuarios & Seguridad —> */}
           <Link
-            to="/pacientes"
+            to="/usuarios-seguridad"
             className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
           >
             <div className="flex items-center gap-3 sm:gap-4">
@@ -432,104 +434,6 @@ export default function AdminDashboard() {
               </div>
             </div>
           </Link>
-
-          {/* Registrar Historia Clínica */}
-          <Link
-            to="/historias/registrar"
-            className="group bg-white/80 border border-teal-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-          >
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-teal-100 grid place-items-center shrink-0">
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-teal-700"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                  Registrar Historia Clínica
-                </p>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  Crear un nuevo episodio para un paciente
-                </p>
-              </div>
-              <span className="ml-auto text-teal-700 group-hover:translate-x-0.5 transition">
-                →
-              </span>
-            </div>
-          </Link>
-
-          {/*Consultar Historia Clínica */}
-          <Link
-            to="/historias/consultar"
-            className="group bg-white/80 border border-indigo-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-          >
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 grid place-items-center shrink-0">
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-700"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                  Consultar Historia Clínica
-                </p>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  Buscar por paciente y ver episodios
-                </p>
-              </div>
-              <span className="ml-auto text-indigo-700 group-hover:translate-x-0.5 transition">
-                →
-              </span>
-            </div>
-          </Link>
-
-          {/* Gestionar Roles (solo admins) */}
-          {user?.idtipousuario === 1 && (
-            <Link
-              to="/usuarios"
-              className="group bg-white/80 border border-cyan-100 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition"
-            >
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 grid place-items-center shrink-0">
-                  <svg
-                    className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-700"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 11V7a4 4 0 10-8 0v4M5 11h14l-1 10H6L5 11z"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                    Gestionar roles
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Lista de usuarios, búsqueda y cambio de rol
-                  </p>
-                </div>
-                <span className="ml-auto text-cyan-700 group-hover:translate-x-0.5 transition">
-                  →
-                </span>
-              </div>
-            </Link>
-          )}
 
           {/* Bitácora de Auditoría (solo admins) */}
           {user?.idtipousuario === 1 && (
