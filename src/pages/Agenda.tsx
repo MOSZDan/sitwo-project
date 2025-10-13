@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import TopBar from "../components/TopBar";
 import { Api } from "../lib/Api";
 import { useAuth } from "../context/AuthContext";
+import { descargarPDFConsentimiento } from "../services/consentimientoService";
 
-// Ajusta esta ruta si tu router usa otra (por ejemplo: "/politicasnoshow")
+// Ajusta esta ruta si tu router usa otra (por ejemplo: "/politicanoshow")
 const POLITICAS_ROUTE = "/politicanoshow";
 
 // … (la interfaz Consulta se queda igual)
@@ -16,6 +17,8 @@ interface Consulta {
   idhorario: { hora: string };
   idtipoconsulta: { nombreconsulta: string };
   idestadoconsulta: { id: number; estado: string };
+  // Del branch main: soporte para consentimientos
+  consentimientos?: { id: number }[];
 }
 
 const Agenda = () => {
@@ -36,10 +39,34 @@ const Agenda = () => {
   useEffect(() => {
     const fetchCitas = async () => {
       try {
+        // Cargar las citas con información de consentimiento
         const response = await Api.get("/consultas/");
         const citasRecibidas = response.data.results || [];
-        setCitas(citasRecibidas);
-        console.log("Datos de las citas cargadas:", citasRecibidas);
+
+        // Agregar información de consentimientos a cada cita
+        const citasConConsentimientos = await Promise.all(
+          citasRecibidas.map(async (cita: any) => {
+            try {
+              const consentimientosResponse = await Api.get(
+                `/consentimientos/?consulta=${cita.id}`
+              );
+              const consentimientos = consentimientosResponse.data.results || [];
+              return { ...cita, consentimientos };
+            } catch (err) {
+              console.error(
+                `Error al cargar consentimientos para la cita ${cita.id}:`,
+                err
+              );
+              return { ...cita, consentimientos: [] };
+            }
+          })
+        );
+
+        setCitas(citasConConsentimientos);
+        console.log(
+          "Datos de las citas cargadas con consentimientos:",
+          citasConConsentimientos
+        );
       } catch (err) {
         console.error("Error al cargar las citas:", err);
       } finally {
@@ -72,6 +99,23 @@ const Agenda = () => {
     } catch (error) {
       console.error("Error al confirmar la cita:", error);
       alert("No se pudo confirmar la cita.");
+    }
+  };
+
+  const handleDescargarPDF = async (consentimientoId: number) => {
+    try {
+      const pdfBlob = await descargarPDFConsentimiento(consentimientoId);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `consentimiento_${consentimientoId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al descargar el PDF:", error);
+      alert("No se pudo descargar el PDF del consentimiento.");
     }
   };
 
@@ -118,6 +162,9 @@ const Agenda = () => {
                     Estado
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                    Consentimiento
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
                     Acciones
                   </th>
                 </tr>
@@ -126,13 +173,15 @@ const Agenda = () => {
                 {citas.map((cita) => (
                   <tr key={cita.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {cita.codpaciente.codusuario.nombre} {cita.codpaciente.codusuario.apellido}
+                      {cita.codpaciente.codusuario.nombre}{" "}
+                      {cita.codpaciente.codusuario.apellido}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {cita.fecha} a las {cita.idhorario.hora}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {cita.cododontologo.codusuario.nombre} {cita.cododontologo.codusuario.apellido}
+                      {cita.cododontologo.codusuario.nombre}{" "}
+                      {cita.cododontologo.codusuario.apellido}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span
@@ -142,6 +191,36 @@ const Agenda = () => {
                       >
                         {cita.idestadoconsulta.estado}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {cita.consentimientos && cita.consentimientos.length > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓ Firmado</span>
+                          <button
+                            onClick={() =>
+                              handleDescargarPDF(cita.consentimientos![0].id)
+                            }
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                            title="Descargar PDF"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">No firmado</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {cita.idestadoconsulta.id == 1 && (
@@ -167,9 +246,7 @@ const Agenda = () => {
               <div className="p-6 sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Políticas de No‑Show
-                    </h2>
+                    <h2 className="text-xl font-bold text-gray-900">Políticas de No‑Show</h2>
                     <p className="mt-1 text-sm text-gray-600 max-w-2xl">
                       Configura multas y bloqueos automáticos para estados como “Atrasado”,
                       “No asistió” u otros. Administra todas tus políticas desde una sola
@@ -183,6 +260,8 @@ const Agenda = () => {
                     >
                       Ver políticas
                     </Link>
+                    {/* Conservamos la misma ruta que usa tu proyecto para crear, 
+                        si tu router tiene una ruta específica de creación, cámbiala a `${POLITICAS_ROUTE}/crear` */}
                     <Link
                       to={`${POLITICAS_ROUTE}`}
                       className="inline-flex justify-center rounded-lg border border-cyan-300 px-4 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50"

@@ -3,6 +3,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import TopBar from "../components/TopBar";
 import { Api } from "../lib/Api";
 import { Toaster, toast } from "react-hot-toast";
+import { descargarPDFConsentimiento } from "../services/consentimientoService";
 
 type PacienteApi = {
   codusuario: {
@@ -24,23 +25,19 @@ type HCEItem = {
   updated_at?: string | null;
 };
 
-type DocumentoClinico = {
-  id: string;
-  codpaciente: number;
-  idconsulta: number | null;
-  idhistorialclinico: number | null;
-  tipo_documento: string;
-  nombre_archivo: string;
-  url_s3: string;
-  tamanio_bytes: number;
-  tamanio_mb: number;
-  extension: string;
-  profesional_carga: number;
-  profesional_nombre: string;
-  paciente_nombre: string;
-  fecha_documento: string;
-  notas?: string | null;
+type Consentimiento = {
+  id: number;
+  paciente: number;
+  consulta?: number;
+  titulo: string;
+  texto_contenido: string;
   fecha_creacion: string;
+  fecha_creacion_formateada: string;
+  paciente_nombre: string;
+  paciente_apellido: string;
+  validado_por_nombre?: string;
+  validado_por_apellido?: string;
+  fecha_validacion?: string;
 };
 
 export default function ConsultarHistoriaClinica() {
@@ -58,6 +55,9 @@ export default function ConsultarHistoriaClinica() {
   // historias
   const [historias, setHistorias] = useState<HCEItem[]>([]);
   const [loadingHistorias, setLoadingHistorias] = useState(false);
+  // consentimientos
+  const [consentimientos, setConsentimientos] = useState<Consentimiento[]>([]);
+  const [loadingConsentimientos, setLoadingConsentimientos] = useState(false);
 
   // documentos
   const [documentos, setDocumentos] = useState<Record<number, DocumentoClinico[]>>({});
@@ -122,17 +122,43 @@ export default function ConsultarHistoriaClinica() {
   // cargar historias al seleccionar
   const cargarHistorias = async (id: number) => {
     setLoadingHistorias(true);
+    setLoadingConsentimientos(true);
     try {
-      const { data } = await Api.get(`/historias-clinicas/?paciente=${id}&page_size=1000`);
-      const list = Array.isArray(data) ? data : (data?.results ?? []);
-      setHistorias(list || []);
-      setDocumentos({}); // Limpiar documentos previos
-      setHistoriaExpandida(null);
+      // Cargar historias y consentimientos concurrentemente
+      const [historiasResponse, consentimientosResponse] = await Promise.all([
+        Api.get(`/historias-clinicas/?paciente=${id}&page_size=1000`),
+        Api.get(`/consentimientos/?paciente=${id}&page_size=1000`)
+      ]);
+      
+      const historiasList = Array.isArray(historiasResponse.data) ? historiasResponse.data : (historiasResponse.data?.results ?? []);
+      const consentimientosList = Array.isArray(consentimientosResponse.data) ? consentimientosResponse.data : (consentimientosResponse.data?.results ?? []);
+      
+      setHistorias(historiasList || []);
+      setConsentimientos(consentimientosList || []);
     } catch {
-      toast.error("No se pudo obtener el historial clínico");
+      toast.error("No se pudo obtener el historial clínico o los consentimientos");
       setHistorias([]);
+      setConsentimientos([]);
     } finally {
       setLoadingHistorias(false);
+      setLoadingConsentimientos(false);
+    }
+  };
+
+  const handleDescargarPDF = async (consentimientoId: number) => {
+    try {
+      const pdfBlob = await descargarPDFConsentimiento(consentimientoId);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `consentimiento_${consentimientoId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al descargar el PDF:", error);
+      toast.error("No se pudo descargar el PDF del consentimiento.");
     }
   };
 
@@ -228,10 +254,6 @@ export default function ConsultarHistoriaClinica() {
           <section className="mt-8">
             {!pacienteId ? (
               <p className="text-gray-500">Selecciona un paciente para ver su historial.</p>
-            ) : loadingHistorias ? (
-              <p className="text-gray-500">Cargando historial…</p>
-            ) : historias.length === 0 ? (
-              <p className="text-gray-500">Este paciente no tiene registros.</p>
             ) : (
               <div className="space-y-4">
                 {historias.map((h) => (
