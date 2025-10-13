@@ -1,4 +1,3 @@
-// src/lib/Api.ts
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosInstance, Method, InternalAxiosRequestConfig } from "axios";
 
@@ -25,10 +24,15 @@ function detectTenant(): string | null {
 
 const currentTenant = detectTenant();
 
+// EXPORTED: usa el mismo tenant que imprime la consola
+export const TENANT_SUBDOMAIN: string | null = currentTenant;
+// Opcional para debugging global en el navegador
+;(window as any).__TENANT__ = currentTenant;
+
 const baseURL: string = import.meta.env.DEV
-    ? "/api" // DEV: Usa proxy de Vite
-    : `https://${(
-        (import.meta.env.VITE_API_BASE as string | undefined) ?? "notificct.dpdns.org"
+  ? "/api" // DEV: Usa proxy de Vite
+  : `https://${(
+      (import.meta.env.VITE_API_BASE as string | undefined) ?? "notificct.dpdns.org"
     ).replace(/^https?:\/\//, "").replace(/\/$/, "")}/api`;
 
 console.log("🔧 API Configuration:");
@@ -43,21 +47,20 @@ export const Api: AxiosInstance = axios.create({
 });
 
 export interface User {
-    id: number;
-    email: string;
-    first_name: string;
-    last_name: string;
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface Usuario {
-    codigo: number;
-    nombre: string;
-    apellido: string;
-    subtipo: string;
-    idtipousuario: number;
-    recibir_notificaciones?: boolean;
+  codigo: number;
+  nombre: string;
+  apellido: string;
+  subtipo: string;
+  idtipousuario: number;
+  recibir_notificaciones?: boolean;
 }
-
 
 export function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`;
@@ -92,9 +95,9 @@ Api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   // --- Headers para multi-tenancy y CSRF ---
   const hdrs = AxiosHeaders.from(config.headers);
 
-  // Enviar subdominio detectado como header para multi-tenancy
-  if (currentTenant) {
-    hdrs.set("X-Tenant-Subdomain", currentTenant);
+  // Enviar subdominio detectado como header para multi-tenancy (el MISMO que ves en consola)
+  if (TENANT_SUBDOMAIN) {
+    hdrs.set("X-Tenant-Subdomain", TENANT_SUBDOMAIN);
   }
 
   // CSRF para métodos que lo requieren
@@ -137,43 +140,25 @@ export async function seedCsrf(): Promise<void> {
 
 export const updateUserSettings = async (settings: { recibir_notificaciones: boolean }, token: string) => {
   try {
-    // Usamos la instancia 'Api' que ya está configurada globalmente
     const response = await Api.patch('/auth/user/settings/', settings, {
-      headers: {
-        'Authorization': `Token ${token}`
-      }
-
+      headers: { 'Authorization': `Token ${token}` }
     });
     return response.data;
   } catch (error) {
     console.error("Error al actualizar las preferencias:", error);
     throw error;
   }
-
 };
 
-/**
- * Cancela una cita específica.
- * @param consultaId El ID de la consulta a cancelar.
- * @param motivo Motivo de cancelación (opcional).
- */
 export const cancelarCita = async (consultaId: number, motivo?: string): Promise<void> => {
   try {
-    await Api.post(`/consultas/${consultaId}/cancelar/`, {
-      motivo_cancelacion: motivo || ''
-    });
+    await Api.post(`/consultas/${consultaId}/cancelar/`, { motivo_cancelacion: motivo || '' });
   } catch (error) {
     console.error(`Error al cancelar la cita ${consultaId}:`, error);
     throw error;
   }
 };
 
-/**
- * Reprograma una cita a una nueva fecha y horario.
- * @param consultaId El ID de la consulta a reprogramar.
- * @param nuevaFecha La nueva fecha en formato 'YYYY-MM-DD'.
- * @param nuevoHorarioId El ID del nuevo horario.
- */
 export const reprogramarCita = async (consultaId: number, nuevaFecha: string, nuevoHorarioId: number) => {
   try {
     const response = await Api.patch(`/consultas/${consultaId}/reprogramar/`, {
@@ -187,11 +172,6 @@ export const reprogramarCita = async (consultaId: number, nuevaFecha: string, nu
   }
 };
 
-/**
- * Obtiene horarios disponibles para una fecha y odontólogo específicos.
- * @param fecha La fecha en formato 'YYYY-MM-DD'.
- * @param odontologoId El ID del odontólogo.
- */
 export const obtenerHorariosDisponibles = async (fecha: string, odontologoId: number) => {
   try {
     const response = await Api.get(`/horarios/disponibles/?fecha=${fecha}&odontologo_id=${odontologoId}`);
